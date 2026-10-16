@@ -1,13 +1,19 @@
 {
+  "id": "/ffm-pwa/",
   "name": "FFinanceManager",
   "short_name": "FFM",
-  "description": "Personal finance assistant: daily spending, bills, meals and debt payoff.",
+  "description": "Personal finance assistant: daily spending, bills, meals and debt payoff. Built for Samsung Note with S Pen hover previews, Air Command quick actions, DeX desktop layout and Samsung Notes export.",
   "start_url": "./index.html",
   "scope": "./",
   "display": "standalone",
-  "orientation": "portrait",
+  "display_override": ["window-controls-overlay", "standalone", "minimal-ui"],
+  "orientation": "any",
   "background_color": "#0b0f14",
   "theme_color": "#0b0f14",
+  "lang": "en",
+  "dir": "ltr",
+  "categories": ["finance", "productivity", "utilities"],
+  "prefer_related_applications": false,
   "icons": [
     {
       "src": "icon-192.png",
@@ -27,5 +33,62 @@
       "type": "image/png",
       "purpose": "maskable"
     }
-  ]
+  ],
+  "shortcuts": [
+    {
+      "name": "Log Expense",
+      "short_name": "Expense",
+      "description": "Quickly log a new expense via the assistant",
+      "url": "./index.html?tab=assistant&action=quick_expense",
+      "icons": [{ "src": "icon-192.png", "sizes": "192x192" }]
+    },
+    {
+      "name": "Bills Due",
+      "short_name": "Bills",
+      "description": "See which bills are coming due",
+      "url": "./index.html?tab=today",
+      "icons": [{ "src": "icon-192.png", "sizes": "192x192" }]
+    },
+    {
+      "name": "Debt Payoff Plan",
+      "short_name": "Snowball",
+      "description": "Open the Smart Investor Pro snowball calculator",
+      "url": "./index.html?tab=snowball",
+      "icons": [{ "src": "icon-192.png", "sizes": "192x192" }]
+    },
+    {
+      "name": "Backup Data",
+      "short_name": "Backup",
+      "description": "Download a JSON backup of all your data",
+      "url": "./index.html?action=exportData",
+      "icons": [{ "src": "icon-192.png", "sizes": "192x192" }]
+    }
+  ],
+  "share_target": {
+    "action": "./index.html",
+    "method": "POST",
+    "enctype": "application/x-www-form-urlencoded",
+    "params": {
+      "title": "shared_title",
+      "text": "shared_text",
+      "url": "shared_url"
+    }
+  },
+  "file_handlers": [
+    {
+      "action": "./index.html",
+      "accept": { "application/json": [".json"] },
+      "icons": [{ "src": "icon-192.png", "sizes": "192x192" }],
+      "launch_type": "single-user"
+    }
+  ],
+  "protocol_handlers": [
+    { "protocol": "web+ffm", "url": "./index.html?proto=%s" }
+  ],
+  "edge_side_panel": {
+    "preferred_width": 400
+  },
+  "launch_handler": {
+    "client_mode": "navigate-existing"
+  }
 }
