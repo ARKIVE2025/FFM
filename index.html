@@ -3,12 +3,24 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-<meta name="theme-color" content="#0b0f14">
+<meta name="theme-color" content="#0b0f14" media="(prefers-color-scheme: dark)">
+<meta name="theme-color" content="#0b0f14" media="(prefers-color-scheme: light)">
+<meta name="color-scheme" content="dark light">
+<meta name="supported-color-schemes" content="dark light">
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="FFM">
+<meta name="application-name" content="FFinanceManager">
+<meta name="description" content="Personal finance assistant with S Pen hover previews, Air Command quick actions, and Samsung Notes export.">
+<meta name="format-detection" content="telephone=no">
+<!-- Samsung Internet enhancements -->
+<meta name="samsung-desktop-feature" content="enable">
 <link rel="manifest" href="manifest.webmanifest">
 <link rel="icon" href="icon-192.png">
 <link rel="apple-touch-icon" href="icon-192.png">
+<link rel="apple-touch-icon" sizes="192x192" href="icon-192.png">
+<link rel="apple-touch-icon" sizes="512x512" href="icon-512.png">
 <title>FFinanceManager FFM — V.5</title>
 <style>
 :root{
@@ -371,9 +383,163 @@
     .msg.ai{margin-right:2%;}
   }
 
+  /* ──────────────────────────────────────────────────────────
+     SAMSUNG NOTE / S PEN ENHANCEMENTS
+     - S Pen hover (pointerType: 'pen') shows enhanced previews
+     - Air Command FAB (long-press / S Pen button) for quick actions
+     - DeX / wide-screen two-column layout
+     - Reduced motion respect for accessibility
+     ────────────────────────────────────────────────────────── */
+
+  /* Body class toggled by JS when S Pen detected */
+  body.spen-active .list-row,
+  body.spen-active tr,
+  body.spen-active .tile,
+  body.spen-active .card{
+    transition:outline .12s ease, transform .12s ease;
+  }
+  body.spen-active .list-row:hover,
+  body.spen-active tbody tr:hover{
+    outline:1px solid rgba(34,211,238,.5);
+    outline-offset:-1px;
+  }
+
+  /* S Pen hover tooltip — appears next to hovered row */
+  .spen-tip{
+    position:fixed; pointer-events:none; z-index:300;
+    background:var(--panel3); border:1px solid var(--accent);
+    color:var(--text); font-size:12px; line-height:1.5;
+    padding:8px 12px; border-radius:8px; max-width:280px;
+    box-shadow:0 6px 18px rgba(0,0,0,.45);
+    transform:translate(-50%, -100%); margin-top:-10px;
+    display:none;
+  }
+  .spen-tip.visible{display:block; animation:spenFade .12s ease-out;}
+  @keyframes spenFade{ from{opacity:0;transform:translate(-50%,-90%);} to{opacity:1;transform:translate(-50%,-100%);} }
+  .spen-tip h5{margin:0 0 4px;font-size:12px;color:var(--accent);font-weight:700;}
+  .spen-tip .tip-row{display:flex;justify-content:space-between;gap:14px;margin-bottom:2px;}
+  .spen-tip .tip-row .k{color:var(--muted);}
+  .spen-tip .tip-row .v{color:var(--text);font-variant-numeric:tabular-nums;font-weight:600;}
+
+  /* Air Command FAB — appears bottom-right; long-press to open radial menu */
+  #airCommandFab{
+    position:fixed; right:18px; bottom:calc(20px + env(safe-area-inset-bottom));
+    width:54px; height:54px; border-radius:50%;
+    background:linear-gradient(135deg, var(--purple), var(--accent));
+    color:#fff; border:none; cursor:pointer; z-index:120;
+    box-shadow:0 6px 18px rgba(167,139,250,.45);
+    display:none; align-items:center; justify-content:center;
+    font-size:24px; font-weight:700;
+    transition:transform .15s ease;
+  }
+  body.spen-active #airCommandFab,
+  body.has-pen #airCommandFab{ display:flex; }
+  #airCommandFab:active{ transform:scale(.92); }
+
+  /* Radial action menu */
+  #airCommandMenu{
+    position:fixed; right:18px; bottom:90px;
+    background:var(--panel3); border:1px solid var(--accent);
+    border-radius:14px; padding:8px; z-index:120;
+    box-shadow:0 12px 30px rgba(0,0,0,.55);
+    display:none; min-width:200px;
+  }
+  #airCommandMenu.open{ display:block; animation:menuPop .15s ease-out; }
+  @keyframes menuPop{ from{opacity:0;transform:translateY(8px);} to{opacity:1;transform:translateY(0);} }
+  #airCommandMenu h6{
+    margin:0 0 8px; padding:0 8px;
+    font-size:10px; color:var(--muted);
+    text-transform:uppercase; letter-spacing:.6px;
+  }
+  #airCommandMenu button{
+    display:flex; align-items:center; gap:10px;
+    width:100%; padding:9px 10px; border:none;
+    background:transparent; color:var(--text);
+    border-radius:8px; cursor:pointer; font-size:13px;
+    text-align:left; transition:background .12s;
+  }
+  #airCommandMenu button:hover{ background:var(--panel2); }
+  #airCommandMenu button .icon{ font-size:16px; flex:none; }
+
+  /* DeX / wide-screen: two-column desktop layout */
+  @media (min-width: 1100px) and (hover: hover) and (pointer: fine){
+    body.dex-active main{ max-width:1400px; padding:24px 32px; }
+    body.dex-active nav{
+      flex-wrap:wrap; padding:10px 32px;
+    }
+    body.dex-active .grid-2,
+    body.dex-active .tile-grid{
+      grid-template-columns:repeat(auto-fit,minmax(220px,1fr));
+    }
+    /* Two-pane assistant: chat left, tiles right */
+    body.dex-active #assistant .card{
+      display:grid; grid-template-columns: 1.4fr 1fr; gap:18px;
+    }
+    body.dex-active #assistant .chips,
+    body.dex-active #assistant .chat-log,
+    body.dex-active #assistant .row.tight{
+      grid-column: 1;
+    }
+    body.dex-active #assistant .chat-log.big{
+      height:calc(100dvh - 280px); max-height:680px;
+    }
+  }
+
+  /* Reduced motion: disable all decorative animations */
+  @media (prefers-reduced-motion: reduce){
+    *, *::before, *::after{
+      animation-duration:.001ms !important;
+      animation-iteration-count:1 !important;
+      transition-duration:.001ms !important;
+    }
+  }
+
+  /* Focus visibility for keyboard + S Pen navigation */
+  button:focus-visible,
+  a:focus-visible,
+  input:focus-visible,
+  select:focus-visible,
+  textarea:focus-visible{
+    outline:2px solid var(--accent);
+    outline-offset:2px;
+    border-radius:8px;
+  }
+
+  /* Larger touch targets on touch devices (S Pen friendly) */
+  @media (pointer: coarse){
+    .list-row button.btn{ padding:8px 12px; min-height:36px; }
+    nav button{ padding:9px 15px; min-height:38px; }
+  }
+
+  /* High-contrast mode enhancement */
+  @media (prefers-contrast: more){
+    :root{
+      --border:#5a6675;
+      --muted:#b8c0c8;
+    }
+    .card{ border-width:2px; }
+  }
+
 </style>
 </head>
 <body>
+
+<!-- S Pen hover preview tooltip (positioned dynamically by JS) -->
+<div class="spen-tip" id="spenTip" role="tooltip" aria-hidden="true"></div>
+
+<!-- Air Command FAB — visible when S Pen is detected -->
+<button id="airCommandFab" aria-label="Open Air Command quick actions menu" aria-expanded="false" aria-controls="airCommandMenu" title="Quick actions (S Pen)">
+  ✎
+</button>
+<div id="airCommandMenu" role="menu" aria-label="Air Command quick actions">
+  <h6>Air Command</h6>
+  <button role="menuitem" data-air="quick_expense"><span class="icon">💵</span> Log expense</button>
+  <button role="menuitem" data-air="quick_meal"><span class="icon">🍽️</span> Log lunch</button>
+  <button role="menuitem" data-air="quick_balance"><span class="icon">🏦</span> Update balance</button>
+  <button role="menuitem" data-air="quick_bills"><span class="icon">📋</span> Bills due</button>
+  <button role="menuitem" data-air="share_to_notes"><span class="icon">📤</span> Share to Samsung Notes</button>
+  <button role="menuitem" data-air="backup_now"><span class="icon">💾</span> Backup now</button>
+</div>
 
 <header>
   <h1>FF<span class="brand-accent">inanceManager</span> <span class="brand-badge">V.5</span></h1>
@@ -431,6 +597,12 @@
   <!-- TODAY -->
   <div class="tab" id="today">
     <div id="backupBanner"></div>
+    <div id="filePermBanner" class="card compact" style="display:none;border-color:var(--accent2);">
+      <div class="row">
+        <span class="small">Auto-save file needs permission. Tap "Re-link" to keep saving to your chosen JSON file.</span>
+        <button class="btn secondary" style="flex:none" data-action="relinkPermission">Re-link</button>
+      </div>
+    </div>
     <div class="card">
       <div class="card-header"><h3>Today</h3><span class="tiny" id="todayAsOf"></span></div>
       <div class="tile-grid" id="todayTiles"></div>
@@ -741,17 +913,19 @@
 function escapeHtml(s){ return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
 function truncate(s, n){ return s.length > n ? s.slice(0, n) + '...' : s; }
 function uid(){ return Date.now().toString(36)+Math.random().toString(36).slice(2,7); }
-function money(n){ return '$'+Number(n||0).toLocaleString(undefined,{minimumFractionDigits:2,maximumFractionDigits:2}); }
-function money0(n){ return '$'+Math.round(Number(n||0)).toLocaleString(); }
-function pct(n){ return (Number(n||0)).toFixed(1)+'%'; }
-function formatDate(d){ const p=parseDate(d); return p&&!isNaN(p) ? p.toLocaleDateString() : '—'; }
+function money(n){ const x=Number(n); return '$'+(isFinite(x)?x:0).toLocaleString(undefined,{minimumFractionDigits:2,maximumFractionDigits:2}); }
+function money0(n){ const x=Number(n); return '$'+Math.round(isFinite(x)?x:0).toLocaleString(); }
+function pct(n){ const x=Number(n); return (isFinite(x)?x:0).toFixed(1)+'%'; }
+function formatDate(d){ try{ const p=parseDate(d); return p&&!isNaN(p) ? p.toLocaleDateString() : '—'; }catch(e){ return '—'; } }
 function monthName(m){ const d=new Date(); d.setMonth(d.getMonth()+m); return d.toLocaleDateString(undefined,{month:'short',year:'2-digit'}); }
 function addMonths(m){ const d=new Date(); d.setMonth(d.getMonth()+m); return d.toLocaleDateString(undefined,{year:'numeric',month:'short',day:'numeric'}); }
 
-// Robust JSON extractor for LLM responses
+// Robust JSON extractor for LLM responses (null/undefined-safe)
 function extractJSON(str) {
-  try { return JSON.parse(str); } catch(e) {}
-  const match = str.match(/```json\s*([\s\S]*?)\s*```/) || str.match(/\{[\s\S]*\}/);
+  if(str==null) return null;
+  const s = String(str);
+  try { return JSON.parse(s); } catch(e) {}
+  const match = s.match(/```json\s*([\s\S]*?)\s*```/) || s.match(/\{[\s\S]*\}/);
   if (match) {
     try { return JSON.parse(match[1] || match[0]); } catch(e) {}
   }
@@ -979,8 +1153,20 @@ async function opfsRead(){
 let linkedHandle=null;
 async function writeLinkedFile(text){
   if(!linkedHandle) return;
-  if(linkedHandle.queryPermission && await linkedHandle.queryPermission({mode:'readwrite'})!=='granted') return;
-  const w=await linkedHandle.createWritable(); await w.write(text); await w.close();
+  // Check permission; if missing, prompt user via UI (cannot be done without gesture)
+  if(linkedHandle.queryPermission){
+    const perm=await linkedHandle.queryPermission({mode:'readwrite'});
+    if(perm!=='granted'){
+      // Surface a re-link prompt so the user can re-grant on next gesture
+      const banner=$('filePermBanner');
+      if(banner) banner.style.display='';
+      return;
+    }
+  }
+  try{
+    const w=await linkedHandle.createWritable(); await w.write(text); await w.close();
+    const banner=$('filePermBanner'); if(banner) banner.style.display='none';
+  }catch(e){ /* file may have moved */ }
 }
 async function linkFile(){
   if(!window.showSaveFilePicker) return toast('Not supported on this browser');
@@ -988,7 +1174,18 @@ async function linkFile(){
     linkedHandle=await window.showSaveFilePicker({suggestedName:'ffm_data.json',types:[{description:'JSON',accept:{'application/json':['.json']}}]});
     await idbSet('handle',linkedHandle);
     await persistNow(); toast('Auto-save file linked'); renderSettings();
+    const banner=$('filePermBanner'); if(banner) banner.style.display='none';
   }catch(e){}
+}
+async function relinkFilePermission(){
+  if(!linkedHandle) return;
+  try{
+    if(linkedHandle.requestPermission){
+      const perm=await linkedHandle.requestPermission({mode:'readwrite'});
+      if(perm==='granted'){ toast('Permission restored'); await persistNow(); const banner=$('filePermBanner'); if(banner) banner.style.display='none'; }
+      else toast('Permission denied');
+    }
+  }catch(e){ toast('Could not restore permission'); }
 }
 
 function exportable(){
@@ -1454,8 +1651,13 @@ function ruleAgent(raw){
 }
 
 // ══════════════════════════════════════════════════════════════
-// V5 — AI AGENT (Groq / DeepSeek / OpenAI)
+// V5 — AI CALL (with timeout, abort, wake-lock, structured error)
 // ══════════════════════════════════════════════════════════════
+let _activeAIController=null;
+async function acquireWakeLock(){
+  try{ if('wakeLock' in navigator) return await navigator.wakeLock.request('screen'); }catch(e){}
+  return null;
+}
 async function callAI(prompt, systemPrompt, maxTokens = 800, jsonMode = false, history = []) {
   const s=db.settings;
   const p=PROVIDERS[s.provider]||PROVIDERS.groq;
@@ -1466,10 +1668,27 @@ async function callAI(prompt, systemPrompt, maxTokens = 800, jsonMode = false, h
   if(s.provider==='openai' && /^(o\d|gpt-5)/.test(model)) body.max_completion_tokens=Math.max(maxTokens,2000);
   else { body.max_tokens=maxTokens; body.temperature=0.2; }
   if(jsonMode) body.response_format={type:'json_object'};
-  const res=await fetch(p.url,{method:'POST',headers:{'Content-Type':'application/json','Authorization':'Bearer '+key},body:JSON.stringify(body)});
-  if(!res.ok){ let t=''; try{ t=(await res.text()).slice(0,200); }catch(e){} throw new Error('API error '+res.status+(t?': '+t:'')); }
-  const data=await res.json();
-  return data.choices[0].message.content;
+
+  // Abort after 35s so a stuck provider never hangs the UI
+  if(_activeAIController) _activeAIController.abort();
+  _activeAIController=new AbortController();
+  const timeoutId=setTimeout(()=>_activeAIController.abort(),35000);
+  const wakeLock=await acquireWakeLock();
+  try{
+    const res=await fetch(p.url,{method:'POST',headers:{'Content-Type':'application/json','Authorization':'Bearer '+key},body:JSON.stringify(body),signal:_activeAIController.signal});
+    if(!res.ok){ let t=''; try{ t=(await res.text()).slice(0,200); }catch(e){} throw new Error('API error '+res.status+(t?': '+t:'')); }
+    const data=await res.json();
+    const content=data&&data.choices&&data.choices[0]&&data.choices[0].message&&data.choices[0].message.content;
+    if(content==null) throw new Error('AI returned an empty response. Try again or switch providers in Settings.');
+    return content;
+  }catch(err){
+    if(err.name==='AbortError') throw new Error('AI request timed out after 35s. Check your connection or try again.');
+    throw err;
+  }finally{
+    clearTimeout(timeoutId);
+    _activeAIController=null;
+    try{ if(wakeLock&&wakeLock.release) await wakeLock.release(); }catch(e){}
+  }
 }
 
 function buildContext(){
@@ -1641,7 +1860,7 @@ function renderToday(){
     <div class="tile ${db.accounts.length?(safe>=0?'good':'debt'):''}"><div class="tile-label"><span class="tile-icon" style="background:var(--accent)"></span>After bills</div><div class="tile-val">${db.accounts.length?money(safe):'—'}</div><div class="tile-sub">Cash minus bills due</div></div>`;
   const ideas=buildIdeas();
   $('todayIdeas').innerHTML=ideas.length?ideas.map(i=>`<div class="idea">${i}</div>`).join(''):'Log a few days of spending and I\'ll start spotting patterns.';
-  $('accountList').innerHTML=db.accounts.length?db.accounts.map(a=>`<div class="list-row"><span>${escapeHtml(a.name)}</span><span><strong>${money(num(a.balance))}</strong></span><span class="btns"><button class="btn secondary" data-action="setAccount" data-id="${a.id}">Set</button><button class="btn danger" data-action="deleteAccount" data-id="${a.id}">X</button></span></div>`).join(''):'<div class="small">No accounts yet. Add one, or tell the assistant "my checking balance is $2,400".</div>';
+  $('accountList').innerHTML=db.accounts.length?db.accounts.map(a=>`<div class="list-row"><span>${escapeHtml(a.name)}</span><span><strong>${money(num(a.balance))}</strong></span><span class="btns"><button class="btn secondary" data-action="setAccount" data-id="${a.id}">Set</button><button class="btn danger" aria-label="Delete account" data-action="deleteAccount" data-id="${a.id}">X</button></span></div>`).join(''):'<div class="small">No accounts yet. Add one, or tell the assistant "my checking balance is $2,400".</div>';
   $('todayBills').innerHTML=b14.length?b14.map(b=>`<div class="list-row"><span>${escapeHtml(b.name)}<div class="tiny">${dueLabel(b.due)} · ${formatDate(b.due)}</div></span><span><strong>${money(num(b.amount))}</strong></span><span class="btns"><button class="btn" data-action="payBill" data-id="${b.id}">Paid</button></span></div>`).join(''):'<div class="small">Nothing due in the next 14 days.</div>';
   const wkList=expensesIn(wk,today), by={};
   wkList.forEach(e=>{ by[e.category]=(by[e.category]||0)+num(e.amount); });
@@ -1654,7 +1873,7 @@ function renderToday(){
   $('mealList').innerHTML=meals.length?meals.map(m=>{
     const planned=m.date>today;
     const est=m.cost==null?estimateMealCost(m.text,m.meal):null;
-    return `<div class="list-row"><span>${escapeHtml(cap(m.meal))}: ${escapeHtml(m.text)}<div class="tiny">${formatDate(m.date)}${planned?' · planned':''}</div></span><span>${m.cost!=null?'<strong>'+money(num(m.cost))+'</strong>':(est!=null?'<span class="small">≈ '+money(est)+'</span>':'<span class="small">no cost</span>')}</span><span class="btns">${m.cost==null?`<button class="btn secondary" data-action="setMealCost" data-id="${m.id}">Cost</button>`:''}<button class="btn danger" data-action="deleteMeal" data-id="${m.id}">X</button></span></div>`;
+    return `<div class="list-row"><span>${escapeHtml(cap(m.meal))}: ${escapeHtml(m.text)}<div class="tiny">${formatDate(m.date)}${planned?' · planned':''}</div></span><span>${m.cost!=null?'<strong>'+money(num(m.cost))+'</strong>':(est!=null?'<span class="small">≈ '+money(est)+'</span>':'<span class="small">no cost</span>')}</span><span class="btns">${m.cost==null?`<button class="btn secondary" data-action="setMealCost" data-id="${m.id}">Cost</button>`:''}<button class="btn danger" aria-label="Delete meal" data-action="deleteMeal" data-id="${m.id}">X</button></span></div>`;
   }).join(''):'<div class="small">No meals yet.</div>';
   const last=db.settings.lastBackup;
   const hasData=db.expenses.length||db.debts.length||db.bills.length||db.income.length;
@@ -1697,7 +1916,7 @@ function renderBills(){
   const list=[...db.bills].sort((a,b)=>String(a.due).localeCompare(String(b.due)));
   tb.innerHTML=list.length?list.map(b=>{
     const n=daysBetween(todayISO(),b.due);
-    return `<tr><td>${escapeHtml(b.name)}<div class="tiny">${b.recurring==='none'?'one time':b.recurring}</div></td><td class="num">${money(num(b.amount))}</td><td><span class="badge ${n<0?'bad':n<=7?'warn':''}">${dueLabel(b.due)}</span><div class="tiny">${formatDate(b.due)}</div></td><td><button class="btn" data-action="payBill" data-id="${b.id}">Paid</button> <button class="btn danger" data-action="deleteBill" data-id="${b.id}">X</button></td></tr>`;
+    return `<tr><td>${escapeHtml(b.name)}<div class="tiny">${b.recurring==='none'?'one time':b.recurring}</div></td><td class="num">${money(num(b.amount))}</td><td><span class="badge ${n<0?'bad':n<=7?'warn':''}">${dueLabel(b.due)}</span><div class="tiny">${formatDate(b.due)}</div></td><td><button class="btn" data-action="payBill" data-id="${b.id}">Paid</button> <button class="btn danger" aria-label="Delete bill" data-action="deleteBill" data-id="${b.id}">X</button></td></tr>`;
   }).join(''):'<tr><td colspan="4" class="small">No bills yet</td></tr>';
 }
 
@@ -1809,6 +2028,7 @@ document.addEventListener('DOMContentLoaded', async () => {
       case 'exportData': exportData(); break;
       case 'shareBackup': shareBackup(); break;
       case 'linkFile': linkFile(); break;
+      case 'relinkPermission': relinkFilePermission(); break;
       case 'resetData': resetData(); break;
       case 'installApp': installApp(); break;
       case 'triggerImport': $('importFile').click(); break;
@@ -1829,9 +2049,418 @@ document.addEventListener('DOMContentLoaded', async () => {
   $('chatInput').addEventListener('keydown', e => { if(e.key==='Enter') sendChat(); });
 
   if('serviceWorker' in navigator && location.protocol!=='file:'){
-    navigator.serviceWorker.register('sw.js').catch(()=>{});
+    navigator.serviceWorker.register('sw.js').then(reg=>{
+      // Hook up message channel for SW ↔ client communication
+      if(!navigator.serviceWorker.controller) return;
+      navigator.serviceWorker.addEventListener('message', handleSWMessage);
+      // Ask the SW to register periodic sync (if supported)
+      if('periodicSync' in reg){
+        try{ navigator.serviceWorker.controller.postMessage({type:'REGISTER_PERIODIC_SYNC'}); }catch(e){}
+      }
+    }).catch(()=>{});
   }
+
+  initSamsungNoteFeatures();
+  initWebShareTarget();
+  initBillReminderNotifications();
+  processLaunchParams();
 });
+
+// ══════════════════════════════════════════════════════════════
+// SAMSUNG NOTE / S PEN INTEGRATION
+// ══════════════════════════════════════════════════════════════
+function initSamsungNoteFeatures(){
+  // ── S Pen detection via Pointer Events ──
+  let penDetected = false;
+  let penHoverTimer = null;
+  const tip = document.getElementById('spenTip');
+  const fab = document.getElementById('airCommandFab');
+  const menu = document.getElementById('airCommandMenu');
+
+  // Detect S Pen presence
+  function markPen(active){
+    if(active && !penDetected){
+      penDetected = true;
+      document.body.classList.add('spen-active','has-pen');
+    } else if(!active && penDetected){
+      // Only deactivate after a short delay (avoid thrash on pen up/down)
+      clearTimeout(penHoverTimer);
+      penHoverTimer = setTimeout(()=>{
+        penDetected = false;
+        document.body.classList.remove('spen-active');
+        hideTip();
+      }, 800);
+    }
+  }
+
+  // Listen for pointer events globally
+  document.addEventListener('pointerdown', e => {
+    if(e.pointerType === 'pen') markPen(true);
+  });
+  document.addEventListener('pointermove', e => {
+    if(e.pointerType === 'pen'){
+      markPen(true);
+      handlePenHover(e);
+    } else if(e.pointerType === 'mouse' && e.buttons === 0){
+      // Mouse hover also useful on DeX
+      handlePenHover(e, 'mouse');
+    }
+  });
+  document.addEventListener('pointerup',   e => { if(e.pointerType === 'pen') markPen(false); });
+  document.addEventListener('pointercancel', e => { if(e.pointerType === 'pen') markPen(false); });
+  document.addEventListener('pointerleave', e => { if(e.pointerType === 'pen'){ markPen(false); hideTip(); } });
+
+  function handlePenHover(e, type){
+    const target = e.target.closest('tr,.list-row,.tile');
+    if(!target){ hideTip(); return; }
+    const html = buildHoverHTML(target);
+    if(!html){ hideTip(); return; }
+    showTip(html, e.clientX, e.clientY);
+  }
+
+  function buildHoverHTML(el){
+    // Bills list rows
+    if(el.matches('.list-row')){
+      const txt = el.textContent || '';
+      // Bills due in 14 days / Today bills list
+      if(txt.includes('Paid') || txt.includes('due') || txt.match(/due in|due today|overdue/i)){
+        const name = (el.querySelector('span')||{}).textContent || 'Item';
+        const amount = (txt.match(/\$[\d,.]+/)||[])[0] || '';
+        return `<h5>${escapeHtml(name)}</h5>
+          <div class="tip-row"><span class="k">Amount</span><span class="v">${escapeHtml(amount)}</span></div>
+          <div class="tiny" style="margin-top:6px;color:var(--muted)">Tap "Paid" to log payment and advance the due date.</div>`;
+      }
+      // Accounts row
+      if(txt.match(/Set|X$/) && txt.match(/\$[\d,.]+/)){
+        return `<h5>Account</h5>
+          <div class="tiny" style="color:var(--muted)">Tap "Set" to update the balance, or "X" to remove the account.</div>`;
+      }
+      // Meals row
+      if(txt.match(/breakfast|lunch|dinner|snack/i)){
+        return `<h5>Meal entry</h5>
+          <div class="tiny" style="color:var(--muted)">Tap "Cost" to set how much this meal cost — it will auto-create a Food expense.</div>`;
+      }
+    }
+    // Table rows (expenses, income, debts)
+    if(el.tagName === 'TR'){
+      const cells = el.querySelectorAll('td');
+      if(cells.length >= 3){
+        const cat = cells[0] ? cells[0].textContent.trim() : '';
+        const amt = cells[1] ? cells[1].textContent.trim() : '';
+        const extra = cells[2] ? cells[2].textContent.trim() : '';
+        return `<h5>${escapeHtml(cat||'Row')}</h5>
+          <div class="tip-row"><span class="k">Amount</span><span class="v">${escapeHtml(amt)}</span></div>
+          ${extra ? `<div class="tip-row"><span class="k">Detail</span><span class="v">${escapeHtml(extra)}</span></div>` : ''}
+          <div class="tiny" style="margin-top:6px;color:var(--muted)">Edit / delete via the buttons in the last column.</div>`;
+      }
+    }
+    // Tiles
+    if(el.classList.contains('tile')){
+      const label = (el.querySelector('.tile-label')||{}).textContent || '';
+      const val = (el.querySelector('.tile-val')||{}).textContent || '';
+      const sub = (el.querySelector('.tile-sub')||{}).textContent || '';
+      return `<h5>${escapeHtml(label)}</h5>
+        <div class="tip-row"><span class="k">Value</span><span class="v">${escapeHtml(val)}</span></div>
+        ${sub ? `<div class="tip-row"><span class="k">Detail</span><span class="v">${escapeHtml(sub)}</span></div>` : ''}`;
+    }
+    return '';
+  }
+
+  function showTip(html, x, y){
+    if(!tip) return;
+    tip.innerHTML = html;
+    tip.style.left = x + 'px';
+    tip.style.top = y + 'px';
+    tip.classList.add('visible');
+    tip.setAttribute('aria-hidden','false');
+  }
+  function hideTip(){
+    if(!tip) return;
+    tip.classList.remove('visible');
+    tip.setAttribute('aria-hidden','true');
+  }
+
+  // ── Air Command FAB ──
+  if(fab){
+    let pressTimer = null;
+    fab.addEventListener('pointerdown', e => {
+      pressTimer = setTimeout(()=>toggleAirMenu(true), 500);
+    });
+    fab.addEventListener('pointerup',   () => { clearTimeout(pressTimer); });
+    fab.addEventListener('pointercancel', () => { clearTimeout(pressTimer); });
+    fab.addEventListener('click', e => { toggleAirMenu(); });
+  }
+  function toggleAirMenu(force){
+    if(!menu) return;
+    const open = force===undefined ? !menu.classList.contains('open') : force;
+    menu.classList.toggle('open', open);
+    if(fab){ fab.setAttribute('aria-expanded', open ? 'true' : 'false'); }
+  }
+  // Close air menu when clicking outside
+  document.addEventListener('click', e => {
+    if(!menu || !menu.classList.contains('open')) return;
+    if(e.target.closest('#airCommandMenu') || e.target.closest('#airCommandFab')) return;
+    toggleAirMenu(false);
+  });
+  // Wire air-command actions
+  if(menu){
+    menu.addEventListener('click', e => {
+      const btn = e.target.closest('button[data-air]');
+      if(!btn) return;
+      handleAirCommand(btn.dataset.air);
+      toggleAirMenu(false);
+    });
+  }
+
+  // S Pen button press (e.buttons === 32 for pen barrel button)
+  document.addEventListener('pointerdown', e => {
+    if(e.pointerType === 'pen' && (e.buttons & 32)){
+      toggleAirMenu(true);
+      e.preventDefault();
+    }
+  });
+
+  // ── DeX / wide-screen detection ──
+  function detectDeX(){
+    const wideDesktop = window.matchMedia('(min-width: 1100px) and (hover: hover) and (pointer: fine)').matches;
+    const dex = wideDesktop || (navigator.userAgent.includes('DeX') || navigator.userAgent.includes('Linux armv') && window.screen.width >= 1100);
+    document.body.classList.toggle('dex-active', !!dex);
+  }
+  detectDeX();
+  window.addEventListener('resize', detectDeX);
+
+  // ── Samsung Notes export via Web Share API ──
+  // (Receivers include Samsung Notes on Galaxy devices)
+}
+
+function handleAirCommand(action){
+  switch(action){
+    case 'quick_expense':
+      switchTab('assistant');
+      const i = $('chatInput');
+      i.value = 'Spent $';
+      i.focus();
+      // Place cursor after the dollar sign
+      const len = i.value.length;
+      i.setSelectionRange(len, len);
+      break;
+    case 'quick_meal':
+      switchTab('assistant');
+      const m = $('chatInput');
+      m.value = 'Lunch today is ';
+      m.focus();
+      break;
+    case 'quick_balance':
+      switchTab('assistant');
+      const b = $('chatInput');
+      b.value = 'My checking balance is $';
+      b.focus();
+      break;
+    case 'quick_bills':
+      switchTab('assistant');
+      sendChat('What bills are due?');
+      break;
+    case 'share_to_notes':
+      shareToSamsungNotes();
+      break;
+    case 'backup_now':
+      shareBackup();
+      break;
+  }
+}
+
+// Build a summary of the user's finances for sharing to Samsung Notes
+function buildSummaryText(){
+  const t = getTotals();
+  const lines = [];
+  lines.push('FFinanceManager — Summary');
+  lines.push('Generated: ' + new Date().toLocaleString());
+  lines.push('');
+  lines.push('MONTHLY OVERVIEW');
+  lines.push('  Income: ' + money(t.totInc));
+  lines.push('  Expenses: ' + money(t.totExp));
+  lines.push('  Min debt payments: ' + money(t.minDebt));
+  lines.push('  Disposable income: ' + money(t.disposable));
+  lines.push('  Net cash flow: ' + money(t.net));
+  lines.push('  Debt-to-income: ' + pct(t.dti));
+  lines.push('');
+  if(db.debts.length){
+    lines.push('DEBTS (' + db.debts.length + ')');
+    db.debts.forEach(d => {
+      lines.push('  • ' + d.name + ': ' + money(d.balance) + ' @ ' + d.apr + '% APR (min ' + money(d.min) + ')');
+    });
+    lines.push('');
+  }
+  if(db.bills.length){
+    lines.push('UPCOMING BILLS');
+    [...db.bills].sort((a,b)=>String(a.due).localeCompare(String(b.due))).slice(0,8).forEach(b => {
+      lines.push('  • ' + b.name + ' — ' + money(b.amount) + ' — due ' + formatDate(b.due));
+    });
+    lines.push('');
+  }
+  if(db.goals.length){
+    lines.push('GOALS');
+    db.goals.forEach(g => {
+      const p = g.target>0 ? Math.min(g.current/g.target*100,100).toFixed(1) : '0';
+      lines.push('  • ' + g.name + ': ' + money(g.current) + ' / ' + money(g.target) + ' (' + p + '%)');
+    });
+  }
+  return lines.join('\n');
+}
+
+async function shareToSamsungNotes(){
+  const text = buildSummaryText();
+  // Web Share API — Samsung Notes registers as a receiver on Galaxy devices
+  if(navigator.share){
+    try{
+      const file = new File([text], 'ffm_summary.txt', {type:'text/plain'});
+      if(navigator.canShare && navigator.canShare({files:[file]})){
+        await navigator.share({ files:[file], title:'FFinanceManager Summary', text });
+      } else {
+        await navigator.share({ title:'FFinanceManager Summary', text });
+      }
+      toast('Shared — pick Samsung Notes from the share sheet');
+      return;
+    }catch(e){
+      if(e.name==='AbortError') return; // user cancelled
+      // fall through to clipboard
+    }
+  }
+  try{
+    await navigator.clipboard.writeText(text);
+    toast('Summary copied to clipboard — paste into Samsung Notes');
+  }catch(e){
+    toast('Sharing not supported on this device');
+  }
+}
+
+// ══════════════════════════════════════════════════════════════
+// WEB SHARE TARGET RECEIVER
+// ══════════════════════════════════════════════════════════════
+function initWebShareTarget(){
+  // The PWA manifest declares share_target with POST method.
+  // When Samsung Internet / Chrome delivers shared text, it navigates to ./index.html
+  // with a POST body OR with the shared text encoded as query params (depending on browser).
+  // We handle the common GET case here; the SW can intercept the POST if needed.
+  const params = new URLSearchParams(location.search);
+  const sharedText = params.get('shared_text') || params.get('text') || params.get('title');
+  if(sharedText){
+    // Drop into the assistant input + auto-send
+    setTimeout(()=>{
+      switchTab('assistant');
+      sendChat(sharedText);
+      // Clean the URL so refresh doesn't re-send
+      history.replaceState({}, document.title, location.pathname);
+    }, 300);
+  }
+}
+
+// ══════════════════════════════════════════════════════════════
+// LAUNCH PARAMS — handle ?tab= and ?action= from shortcuts / notifications
+// ══════════════════════════════════════════════════════════════
+function processLaunchParams(){
+  const params = new URLSearchParams(location.search);
+  const tab = params.get('tab');
+  const action = params.get('action');
+  const proto = params.get('proto');
+  // Skip if share target already handled it
+  if(params.get('shared_text') || params.get('text')) return;
+  setTimeout(()=>{
+    if(tab){
+      const valid = ['assistant','today','dashboard','expenses','bills','income','debts','goals','snowball','insights','settings'];
+      if(valid.includes(tab)) switchTab(tab);
+    }
+    if(action === 'exportData') exportData();
+    if(action === 'quick_expense'){
+      switchTab('assistant');
+      const i = $('chatInput'); i.value = 'Spent $'; i.focus();
+    }
+    if(proto){
+      // web+ffm:expense%2012%20on%20gas
+      const decoded = decodeURIComponent(proto).replace(/^web\+ffm:/i,'').replace(/^\/*/, '');
+      if(decoded){
+        switchTab('assistant');
+        sendChat(decoded);
+      }
+    }
+  }, 400);
+}
+
+// ══════════════════════════════════════════════════════════════
+// BILL REMINDER NOTIFICATIONS
+// ══════════════════════════════════════════════════════════════
+function initBillReminderNotifications(){
+  // Ask for permission lazily on first user gesture (e.g., after they save a bill)
+  // Show notifications for bills due within 3 days, once per day per bill
+  if(!('Notification' in window)) return;
+  // Check last-notified timestamp; only check once per session
+  const lastCheckKey = 'ffm_last_bill_check';
+  const today = todayISO();
+  const last = localStorage.getItem(lastCheckKey);
+  if(last === today) return; // already checked today
+  localStorage.setItem(lastCheckKey, today);
+
+  // Defer until app is fully initialized
+  setTimeout(()=>{
+    const soon = upcomingBills(3);
+    soon.forEach(b => {
+      const tag = 'ffm_bill_' + b.id;
+      // Use SW notifications if available (works when app is closed too)
+      if('serviceWorker' in navigator && navigator.serviceWorker.controller){
+        try{
+          navigator.serviceWorker.controller.postMessage({
+            type: 'SHOW_BILL_NOTIFICATION',
+            payload: {
+              body: b.name + ' — ' + money(num(b.amount)) + ' · due ' + formatDate(b.due),
+              tag,
+              url: './index.html?tab=today'
+            }
+          });
+        }catch(e){}
+      } else if(Notification.permission === 'granted'){
+        new Notification('FFinanceManager — Bill Due Soon', {
+          body: b.name + ' — ' + money(num(b.amount)) + ' · due ' + formatDate(b.due),
+          icon: 'icon-192.png',
+          badge: 'icon-192.png',
+          tag
+        });
+      }
+    });
+  }, 1500);
+}
+
+// ── SW ↔ client message handler ──
+async function handleSWMessage(event){
+  const msg = event.data || {};
+  if(msg.type === 'PUSH_BILL_DATA'){
+    // SW asked for bill data so it can send accurate notifications
+    const soon = upcomingBills(7).map(b => ({
+      name: b.name, amount: b.amount, due: b.due
+    }));
+    if(event.source) event.source.postMessage({ type:'BILL_DATA', bills: soon });
+  }
+  if(msg.type === 'NAVIGATE' && msg.url){
+    // SW asked us to navigate (notification click)
+    const url = new URL(msg.url, location.href);
+    const params = url.searchParams;
+    if(params.get('tab')) switchTab(params.get('tab'));
+  }
+  if(msg.type === 'SYNC_PENDING'){
+    // Background sync fired — retry any pending operations
+    flushSave();
+  }
+}
+
+// Lazy request for notification permission on first user interaction
+document.addEventListener('click', function requestNotifOnce(){
+  if(!('Notification' in window)) return;
+  if(Notification.permission === 'default'){
+    // Don't prompt immediately; wait until they save something first
+    // We'll just leave the default; the user can enable in Settings
+  }
+  document.removeEventListener('click', requestNotifOnce);
+}, { once: true });
+
 
 
 // ══════════════════════════════════════════════════════════════
@@ -1862,7 +2491,7 @@ function renderDebts(){
     <td class="num">${money(d.balance)}</td>
     <td class="num">${d.apr}%</td>
     <td class="num">${money(d.min)}</td>
-    <td><button class="btn secondary" data-action="editDebt" data-id="${d.id}">Edit</button> <button class="btn danger" data-action="deleteDebt" data-id="${d.id}">X</button></td>
+    <td><button class="btn secondary" data-action="editDebt" data-id="${d.id}">Edit</button> <button class="btn danger" aria-label="Delete debt" data-action="deleteDebt" data-id="${d.id}">X</button></td>
   </tr>`).join('') : '<tr><td colspan="5" class="small">No debts yet</td></tr>';
 }
 
@@ -1888,7 +2517,7 @@ function renderIncome(){
     <td class="num">${money(d.amount)}</td>
     <td>${formatDate(d.date)}</td>
     <td><span class="badge ${d.recurring!=='none'?'accent':''}">${d.recurring}</span></td>
-    <td><button class="btn secondary" data-action="editIncome" data-id="${d.id}">Edit</button> <button class="btn danger" data-action="deleteIncome" data-id="${d.id}">X</button></td>
+    <td><button class="btn secondary" data-action="editIncome" data-id="${d.id}">Edit</button> <button class="btn danger" aria-label="Delete income" data-action="deleteIncome" data-id="${d.id}">X</button></td>
   </tr>`).join('') : '<tr><td colspan="5" class="small">No income yet</td></tr>';
 }
 
@@ -1916,7 +2545,7 @@ function renderExpenses(){
     <td class="num">${money(d.amount)}</td>
     <td><span class="cat-chip" style="background:${CAT_COLORS[d.category]||'#8b98a5'}"></span>${escapeHtml(d.category)}</td>
     <td>${formatDate(d.date)}</td>
-    <td><button class="btn secondary" data-action="editExpense" data-id="${d.id}">Edit</button> <button class="btn danger" data-action="deleteExpense" data-id="${d.id}">X</button></td>
+    <td><button class="btn secondary" data-action="editExpense" data-id="${d.id}">Edit</button> <button class="btn danger" aria-label="Delete expense" data-action="deleteExpense" data-id="${d.id}">X</button></td>
   </tr>`).join('') : '<tr><td colspan="5" class="small">No expenses yet</td></tr>';
 
   const byCat = {};
@@ -2232,16 +2861,31 @@ function calcSnowball(){
     // Walk through monthlyBreakdown to find when cumulative principal paid crosses halfway
     let work = JSON.parse(JSON.stringify(db.debts));
     if(method==='snowball') work.sort((a,b)=>a.balance-b.balance); else work.sort((a,b)=>b.apr-a.apr);
-    let cum = 0;
+    let cumulativePaid = 0;
+    let mIdx = 0;
     for(const m of monthlyBreakdown){
-      // apply this month's payments to a parallel ledger
-      // simpler: track cumulative principal across months
-      // Use a faster path: re-simulate using the same order
-      break;
+      mIdx++;
+      // Aggregate payments by debt name for this month
+      const byName = {};
+      m.payments.forEach(p => { byName[p.name] = (byName[p.name]||0) + p.amount; });
+      // Apply interest + payments to parallel ledger (mirrors calcSnowball logic)
+      work.forEach(d => {
+        if(d.balance > 0){
+          const interest = (d.balance*(d.apr/100))/12;
+          d.balance += interest;
+          const pay = Math.min(byName[d.name]||0, d.balance);
+          d.balance -= pay;
+          cumulativePaid += pay;
+          delete byName[d.name];
+        }
+      });
+      if(cumulativePaid >= halfwayBalance){ halfwayMonth = mIdx; break; }
     }
-    // Fallback: halfway month ≈ first debt month + half of remaining months
-    if(firstDebtEvent) halfwayMonth = Math.round(firstDebtEvent.month + (month - firstDebtEvent.month)/2);
-    else halfwayMonth = Math.round(month/2);
+    // Fallback if never crossed (e.g. interest-heavy scenario)
+    if(halfwayMonth===null){
+      if(firstDebtEvent) halfwayMonth = Math.round(firstDebtEvent.month + (month - firstDebtEvent.month)/2);
+      else halfwayMonth = Math.round(month/2);
+    }
   }
 
   // ── Render the result card
@@ -2256,6 +2900,16 @@ function calcSnowball(){
         <div class="text">
           <h4>First Debt Paid Off!</h4>
           <p><strong>${escapeHtml(firstDebtEvent.name)}</strong> cleared in month <strong>${firstDebtEvent.month}</strong> (${monthName(firstDebtEvent.month)}). That's ${money(firstDebtEvent.originalBalance)} of debt gone forever. Keep the momentum going — that minimum payment now rolls onto your next debt.</p>
+        </div>
+      </div>`;
+  }
+  if(halfwayMonth && (!firstDebtEvent || halfwayMonth > firstDebtEvent.month) && payoffEvents.length < db.debts.length){
+    milestoneHTML += `
+      <div class="milestone-banner" style="background:linear-gradient(135deg, rgba(34,211,238,.12), rgba(96,165,250,.08));border-color:rgba(34,211,238,.35);">
+        <div class="emoji">📈</div>
+        <div class="text">
+          <h4 style="color:var(--accent);">Halfway There</h4>
+          <p>You'll cross the <strong>50% paid off</strong> mark in month <strong>${halfwayMonth}</strong> (${monthName(halfwayMonth)}). That's halfway to debt freedom — the snowball gets heavier from here.</p>
         </div>
       </div>`;
   }
