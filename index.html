@@ -2190,11 +2190,22 @@ async function aiAgent(text){
   const hist=db.chat.slice(-9,-1).map(m=>({role:m.role==='user'?'user':'assistant',content:String(m.text).slice(0,600)}));
   const raw=await callAI(text, AI_SYSTEM+'\n\nDATA:\n'+buildContext(), 900, true, hist);
   const parsed=extractJSON(raw);
-  if(parsed && typeof parsed==='object'){
+  const pick=o=>{
+    for(const k of ['reply','response','answer','message','text','content','summary']){
+      const v=o[k];
+      if(typeof v==='string'&&v.trim()) return v;
+      if(v&&typeof v==='object'){ try{ return typeof v.text==='string'?v.text:JSON.stringify(v,null,2); }catch(e){} }
+    }
+    return '';
+  };
+  if(parsed && typeof parsed==='object' && !Array.isArray(parsed)){
     const acts=(Array.isArray(parsed.actions)?parsed.actions:[]).filter(a=>a&&ALLOWED.has(a.type));
-    return {reply:String(parsed.reply||''),actions:acts};
+    let reply=pick(parsed);
+    if(!reply.trim() && !acts.length){ const r=String(raw||'').trim(); reply=(r&&r!=='{}')?r:'I got an empty answer. Please try rephrasing.'; }
+    return {reply,actions:acts};
   }
-  return {reply:raw,actions:[]};
+  const r=String(raw||'').trim();
+  return {reply:r||'I got an empty answer. Please try again.',actions:[]};
 }
 
 // ══════════════════════════════════════════════════════════════
@@ -2310,7 +2321,7 @@ function handleResult(res){
     text=(lines.join('\n'))+(text?'\n\n'+text:'');
     if(res.after){ const x=res.after(); if(x) text+='\n\n'+x; }
   }
-  addMsg('ai',text||(ask.length?'Please confirm:':'Done.'));
+  addMsg('ai',(text&&String(text).trim())?text:(ask.length?'Please confirm:':'Done.'));
   if(ask.length) showPending(ask);
   agentState.awaiting=res.awaiting||null;
 }
