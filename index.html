@@ -878,14 +878,25 @@
         <option value="groq">Groq</option>
         <option value="deepseek">DeepSeek</option>
         <option value="openai">OpenAI</option>
+        <option value="premium">Premium (Google sign-in)</option>
       </select>
-      <label>API Key</label>
-      <input id="aiKey" type="password" placeholder="Paste key" autocomplete="off">
+      <div id="manualKeyBox">
+        <label>API Key</label>
+        <input id="aiKey" type="password" placeholder="Paste key" autocomplete="off">
+      </div>
       <label>Model (optional)</label>
       <input id="aiModel" placeholder="Default">
       <label class="row"><input type="checkbox" id="autoLog" style="width:auto;flex:none;"> <span style="text-transform:none;letter-spacing:0;font-size:13px;color:var(--text);">Save spending, meals and income without asking (Undo available)</span></label>
       <div class="small" style="margin:8px 0;">Your key stays on this device and is never included in backups. In AI mode your data is sent to the provider you choose.</div>
       <button class="btn" data-action="saveSettings">Save</button>
+    </div>
+    <div class="card">
+      <h3>Member Access</h3>
+      <div class="small" id="memberStatus">Optional. Sign in with Google to unlock the premium model.</div>
+      <div class="toolbar" style="margin-top:10px;">
+        <button class="btn" id="memberSignIn" data-action="memberSignIn">Sign in with Google</button>
+        <button class="btn secondary" id="memberSignOut" data-action="memberSignOut" style="display:none">Sign out</button>
+      </div>
     </div>
     <div class="card">
       <h3>Data &amp; Backup</h3>
@@ -1092,10 +1103,28 @@ function expensesIn(from,to,cat){ return db.expenses.filter(e=>e.date&&e.date>=f
 // ══════════════════════════════════════════════════════════════
 // V5 — PROVIDERS
 // ══════════════════════════════════════════════════════════════
+// ══════════════════════════════════════════════════════════════
+// MEMBER ACCESS CONFIG — FILL IN THE PLACEHOLDERS
+// ══════════════════════════════════════════════════════════════
+const FIREBASE_CONFIG = {
+  apiKey:     'AIzaSyAIxG4mTM28ywMIDsGTdWRFKiQTmVtyBUs',
+  authDomain: 'ffmanager-a7075.firebaseapp.com',      // e.g. your-project.firebaseapp.com
+  projectId:  'ffmanager-a7075',
+  appId:      '1:219021011704:web:e7cf44f9c607ea471f690d'
+};
+const PREMIUM_CONFIG = {
+  name:  'Premium',
+  url:   'https://api.deepseek.com/v1/chat/completions',   // DeepSeek
+  model: 'deepseek-chat',
+  keyCollection: 'config',
+  keyDoc:        'Premium',
+  keyField:      'apiKey'
+};
 const PROVIDERS = {
   groq:    { name:'Groq',     url:'https://api.groq.com/openai/v1/chat/completions', model:'llama-3.3-70b-versatile' },
   deepseek:{ name:'DeepSeek', url:'https://api.deepseek.com/v1/chat/completions',    model:'deepseek-chat' },
-  openai:  { name:'OpenAI',   url:'https://api.openai.com/v1/chat/completions',      model:'gpt-4o-mini' }
+  openai:  { name:'OpenAI',   url:'https://api.openai.com/v1/chat/completions',      model:'gpt-4o-mini' },
+  premium: { name:PREMIUM_CONFIG.name, url:PREMIUM_CONFIG.url, model:PREMIUM_CONFIG.model }
 };
 
 // ══════════════════════════════════════════════════════════════
@@ -1661,8 +1690,10 @@ async function acquireWakeLock(){
 async function callAI(prompt, systemPrompt, maxTokens = 800, jsonMode = false, history = []) {
   const s=db.settings;
   const p=PROVIDERS[s.provider]||PROVIDERS.groq;
-  const key=(s.keys||{})[s.provider];
-  if(!key) throw new Error('API key required — add it in Settings.');
+  const isPrem=s.provider==='premium';
+  const key=isPrem?memberKey:(s.keys||{})[s.provider];
+  if(isPrem && /PLACEHOLDER/.test(p.url+p.model)) throw new Error('Premium model is not set up yet.');
+  if(!key) throw new Error(isPrem?'Premium needs Google sign-in with an approved account — see Settings.':'API key required — add it in Settings.');
   const model=(s.models&&s.models[s.provider])||p.model;
   const body={ model, messages:[{role:'system',content:systemPrompt},...history,{role:'user',content:prompt}] };
   if(s.provider==='openai' && /^(o\d|gpt-5)/.test(model)) body.max_completion_tokens=Math.max(maxTokens,2000);
@@ -1795,14 +1826,14 @@ async function sendChat(override){
     if(n!=null && /^(it )?(was |cost |costs |about |around )?\$?\s?\d[\d,.]*( dollars| bucks)?\.?$/.test(t)){ handleResult({reply:'',actions:[{type:'set_meal_cost',cost:n}]}); return; }
   }
 
-  const useAI=db.settings.mode==='ai' && (db.settings.keys||{})[db.settings.provider];
+  const useAI=db.settings.mode==='ai' && (db.settings.provider==='premium'?memberKey:(db.settings.keys||{})[db.settings.provider]);
   if(useAI){
     const think=document.createElement('div'); think.className='msg ai'; think.id='chatThinking'; think.innerHTML='<em style="color:var(--muted);">Thinking…</em>';
     $('chatLog').appendChild(think); $('chatLog').scrollTop=$('chatLog').scrollHeight;
     try{ const res=await aiAgent(text); think.remove(); handleResult(res); }
     catch(err){ think.remove(); addMsg('ai','⚠️ '+err.message+'\n\nUsing offline mode for this message.'); handleResult(ruleAgent(text)); }
   } else {
-    if(db.settings.mode==='ai') addMsg('ai','AI mode is on but no API key is saved for '+(PROVIDERS[db.settings.provider]||PROVIDERS.groq).name+'. Using offline mode.');
+    if(db.settings.mode==='ai') addMsg('ai',db.settings.provider==='premium'?'Premium is locked. Sign in with an approved Google account in Settings. Using offline mode.':'AI mode is on but no API key is saved for '+(PROVIDERS[db.settings.provider]||PROVIDERS.groq).name+'. Using offline mode.');
     handleResult(ruleAgent(text));
   }
 }
@@ -1921,6 +1952,77 @@ function renderBills(){
 }
 
 // ══════════════════════════════════════════════════════════════
+// MEMBER ACCESS (optional Google sign-in → premium key from Firestore)
+// Key is held in memory only: never saved to settings or backups.
+// ══════════════════════════════════════════════════════════════
+let memberKey=null, memberUser=null, memberState='out', _fbReady=null;
+function fbConfigured(){ return !/PLACEHOLDER/.test(JSON.stringify(FIREBASE_CONFIG)); }
+function loadScript(src){ return new Promise((res,rej)=>{ const s=document.createElement('script'); s.src=src; s.onload=res; s.onerror=()=>rej(new Error('load failed')); document.head.appendChild(s); }); }
+function fbInit(){
+  if(_fbReady) return _fbReady;
+  _fbReady=(async()=>{
+    if(!fbConfigured()) throw new Error('unconfigured');
+    const b='https://www.gstatic.com/firebasejs/10.12.2/';
+    await loadScript(b+'firebase-app-compat.js');
+    await Promise.all([loadScript(b+'firebase-auth-compat.js'), loadScript(b+'firebase-firestore-compat.js')]);
+    if(!firebase.apps.length) firebase.initializeApp(FIREBASE_CONFIG);
+    return firebase;
+  })();
+  _fbReady.catch(()=>{ _fbReady=null; });
+  return _fbReady;
+}
+function renderMember(){
+  const st=$('memberStatus'); if(!st) return;
+  const em=memberUser&&memberUser.email?memberUser.email:'';
+  const msg={
+    out:'Optional. Sign in with Google to unlock the premium model.',
+    checking:'Checking access…',
+    ok:'Signed in as '+em+'. Premium unlocked.',
+    denied:'Signed in as '+em+', but this account is not on the approved list.',
+    unconfigured:'Not set up yet (Firebase details missing).',
+    error:'Could not check access. Check your connection and try again.'
+  };
+  st.textContent=msg[memberState]||msg.out;
+  $('memberSignIn').style.display=memberUser?'none':'';
+  $('memberSignOut').style.display=memberUser?'':'none';
+}
+async function fetchMemberKey(){
+  memberState='checking'; renderMember();
+  try{
+    const fb=await fbInit();
+    const snap=await fb.firestore().collection(PREMIUM_CONFIG.keyCollection).doc(PREMIUM_CONFIG.keyDoc).get();
+    const k=snap.exists?snap.data()[PREMIUM_CONFIG.keyField]:null;
+    if(k){ memberKey=k; memberState='ok'; } else { memberKey=null; memberState='denied'; }
+  }catch(e){
+    memberKey=null;
+    memberState=(e&&e.code==='permission-denied')?'denied':'error';
+  }
+  renderMember();
+}
+function memberInit(){
+  if(!fbConfigured()){ memberState='unconfigured'; renderMember(); return; }
+  fbInit().then(fb=>{
+    fb.auth().onAuthStateChanged(u=>{
+      memberUser=u||null;
+      if(u) fetchMemberKey(); else { memberKey=null; memberState='out'; renderMember(); }
+    });
+  }).catch(()=>{ memberState='error'; renderMember(); });
+}
+async function memberSignIn(){
+  try{
+    const fb=await fbInit();
+    await fb.auth().signInWithPopup(new fb.auth.GoogleAuthProvider());
+  }catch(e){
+    if(e&&e.message==='unconfigured') toast('Firebase details not filled in yet');
+    else if(!e||e.code!=='auth/popup-closed-by-user') toast('Sign-in failed');
+  }
+}
+async function memberSignOut(){
+  try{ const fb=await fbInit(); await fb.auth().signOut(); }catch(e){}
+  memberKey=null; memberUser=null; memberState='out'; renderMember();
+}
+
+// ══════════════════════════════════════════════════════════════
 // V5 — SETTINGS
 // ══════════════════════════════════════════════════════════════
 function renderSettings(){
@@ -1929,6 +2031,8 @@ function renderSettings(){
   $('aiMode').value=s.mode||'rules'; $('aiProvider').value=s.provider;
   $('aiKey').value=(s.keys||{})[s.provider]||''; $('aiModel').value=(s.models||{})[s.provider]||'';
   $('aiModel').placeholder=PROVIDERS[s.provider].model;
+  $('manualKeyBox').style.display=s.provider==='premium'?'none':'';
+  renderMember();
   $('autoLog').checked=s.autoLog!==false;
   const last=s.lastBackup?new Date(s.lastBackup).toLocaleDateString():'never';
   const linked=linkedHandle?' Auto-save file: linked.':'';
@@ -1938,12 +2042,13 @@ function renderSettings(){
 function onProviderChange(){
   const p=$('aiProvider').value;
   $('aiKey').value=(db.settings.keys||{})[p]||''; $('aiModel').value=(db.settings.models||{})[p]||''; $('aiModel').placeholder=PROVIDERS[p].model;
+  $('manualKeyBox').style.display=p==='premium'?'none':'';
 }
 function saveSettings(){
   const s=db.settings, p=$('aiProvider').value;
   s.mode=$('aiMode').value; s.provider=p;
   s.keys=s.keys||{}; s.models=s.models||{};
-  const k=$('aiKey').value.trim(); if(k) s.keys[p]=k; else delete s.keys[p];
+  if(p!=='premium'){ const k=$('aiKey').value.trim(); if(k) s.keys[p]=k; else delete s.keys[p]; }
   const m=$('aiModel').value.trim(); if(m) s.models[p]=m; else delete s.models[p];
   s.autoLog=$('autoLog').checked;
   scheduleSave(); renderChat(); toast('Settings saved');
@@ -1984,6 +2089,7 @@ document.addEventListener('DOMContentLoaded', async () => {
   fixNavOffset(); window.addEventListener('resize',fixNavOffset);
   renderAll(); renderChat(); renderSettings(); updateMethodExplainer();
   setSaveState(true);
+  memberInit();
 
   document.body.addEventListener('click', (e) => {
     const el = e.target.closest('[data-action]');
@@ -2025,6 +2131,8 @@ document.addEventListener('DOMContentLoaded', async () => {
       case 'setMealCost': setMealCost(id); break;
       case 'deleteMeal': deleteMeal(id); break;
       case 'saveSettings': saveSettings(); break;
+      case 'memberSignIn': memberSignIn(); break;
+      case 'memberSignOut': memberSignOut(); break;
       case 'exportData': exportData(); break;
       case 'shareBackup': shareBackup(); break;
       case 'linkFile': linkFile(); break;
