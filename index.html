@@ -825,6 +825,17 @@
     -webkit-mask-image:linear-gradient(180deg, transparent 0, #000 14px, #000 calc(100% - 14px), transparent 100%);
   }
 
+  .cal-head{display:flex;align-items:center;justify-content:space-between;gap:8px;margin-bottom:10px;}
+  .cal-grid{display:grid;grid-template-columns:repeat(7,1fr);gap:4px;}
+  .cal-dow{font-size:10px;color:var(--muted);text-align:center;padding:2px 0;}
+  .cal-day{min-height:54px;background:var(--panel2);border:1px solid var(--border);border-radius:8px;padding:3px 4px;font-size:11px;cursor:pointer;display:flex;flex-direction:column;gap:2px;overflow:hidden;}
+  .cal-day.off{opacity:.35;cursor:default;}
+  .cal-day.today{border-color:var(--accent);}
+  .cal-day.sel{background:var(--panel3);border-color:var(--text);}
+  .cal-day.neg .cal-bal{color:var(--bad);}
+  .cal-bal{font-size:9px;color:var(--muted);margin-top:auto;}
+  .cal-dots{display:flex;gap:3px;flex-wrap:wrap;}
+  .cal-dot{width:6px;height:6px;border-radius:50%;}
 </style>
 </head>
 <body>
@@ -867,6 +878,7 @@
   <button data-tab="dashboard" data-action="tab">Dashboard</button>
   <button data-tab="expenses" data-action="tab">Expenses</button>
   <button data-tab="bills" data-action="tab">Bills</button>
+  <button data-tab="calendar" data-action="tab">Calendar</button>
   <button data-tab="income" data-action="tab">Income</button>
   <button data-tab="debts" data-action="tab">Debts</button>
   <button data-tab="goals" data-action="tab">Goals</button>
@@ -963,9 +975,10 @@
       <div class="row">
         <div><label>Next due</label><input id="billDue" type="date"></div>
         <div><label>Repeats</label>
-          <select id="billRecurring"><option value="monthly">Monthly</option><option value="weekly">Weekly</option><option value="none">One time</option></select>
+          <select id="billRecurring"><option value="monthly">Monthly</option><option value="biweekly">Every 2 weeks</option><option value="weekly">Weekly</option><option value="quarterly">Quarterly</option><option value="yearly">Yearly</option><option value="none">One time</option></select>
         </div>
       </div>
+      <div class="row"><div><label>Pay from</label><select id="billAcct"></select></div></div>
       <button class="btn" data-action="submitBill">Add Bill</button>
     </div>
     <div class="card">
@@ -973,6 +986,35 @@
         <thead><tr><th>Bill</th><th class="num">Amount</th><th>Due</th><th></th></tr></thead>
         <tbody id="billTable"></tbody>
       </table>
+    </div>
+  </div>
+
+  <div class="tab" id="calendar">
+    <div class="card">
+      <h3>Cash Forecast</h3>
+      <div id="fcTiles" class="grid-3"></div>
+      <div id="fcWarn" class="small" style="margin-top:10px;"></div>
+    </div>
+    <div class="card">
+      <div class="cal-head">
+        <button class="btn secondary" data-action="calPrev">&lsaquo;</button>
+        <strong id="calTitle"></strong>
+        <button class="btn secondary" data-action="calNext">&rsaquo;</button>
+      </div>
+      <div class="cal-grid" id="calGrid"></div>
+      <div class="tiny" style="margin-top:8px;"><span class="cal-dot" style="background:var(--good);display:inline-block"></span> income &nbsp;<span class="cal-dot" style="background:var(--bad);display:inline-block"></span> bill &nbsp;<span class="cal-dot" style="background:var(--yellow);display:inline-block"></span> planned/note. Small number = projected balance.</div>
+    </div>
+    <div class="card">
+      <h3 id="calDayTitle">Day</h3>
+      <div id="calDayList"></div>
+      <div class="row" style="margin-top:10px;">
+        <div><label>Note / planned item</label><input id="noteText" placeholder="e.g. Car registration"></div>
+        <div><label>Amount (optional)</label><input id="noteAmt" type="number" inputmode="decimal" placeholder="0.00"></div>
+      </div>
+      <div class="row">
+        <div><label>Type</label><select id="noteKind"><option value="note">Note only</option><option value="expense">Planned expense</option><option value="income">Expected income</option></select></div>
+        <div><label>&nbsp;</label><button class="btn" data-action="addNote">Add to this day</button></div>
+      </div>
     </div>
   </div>
 
@@ -1026,7 +1068,7 @@
         <div><label>Amount</label><input id="incAmount" type="number" placeholder="0.00"></div>
       </div>
       <div class="row">
-        <div><label>Date</label><input id="incDate" type="date"></div>
+        <div><label>Date / next pay date</label><input id="incDate" type="date"></div>
         <div><label>Recurring</label>
           <select id="incRecurring">
             <option value="none">One-time</option><option value="weekly">Weekly</option>
@@ -1034,6 +1076,7 @@
           </select>
         </div>
       </div>
+      <div class="row"><div><label>Deposit to</label><select id="incAcct"></select></div></div>
       <button class="btn" id="incSubmitBtn" data-action="submitIncome">Add Income</button>
       <button class="btn secondary" id="incCancelBtn" style="display:none" data-action="cancelIncomeEdit">Cancel</button>
     </div>
@@ -1041,7 +1084,7 @@
       <table>
         <thead><tr>
           <th>Source</th><th class="num">Amount</th>
-          <th>Date</th><th>Recurring</th><th></th>
+          <th>Date</th><th>Repeats</th><th>Account</th><th></th>
         </tr></thead>
         <tbody id="incomeTable"></tbody>
       </table>
@@ -1065,6 +1108,7 @@
         </div>
         <div><label>Date</label><input id="expDate" type="date"></div>
       </div>
+      <div class="row"><div><label>Paid from</label><select id="expAcct"></select></div></div>
       <button class="btn" id="expSubmitBtn" data-action="submitExpense">Add Expense</button>
       <button class="btn secondary" id="expCancelBtn" style="display:none" data-action="cancelExpenseEdit">Cancel</button>
     </div>
@@ -1218,6 +1262,8 @@
       </div>
       <label>Model (optional)</label>
       <input id="aiModel" placeholder="Default">
+      <label>Default account (used when none is chosen)</label>
+      <select id="defAcct"></select>
       <label class="row"><input type="checkbox" id="autoLog" style="width:auto;flex:none;"> <span style="text-transform:none;letter-spacing:0;font-size:13px;color:var(--text);">Save spending, meals and income without asking (Undo available)</span></label>
       <div class="small" style="margin:8px 0;">Your key stays on this device and is never included in backups. In AI mode your data is sent to the provider you choose.</div>
       <button class="btn" data-action="saveSettings">Save</button>
@@ -1416,19 +1462,44 @@ function nextDayOfMonth(day){
   if(isoDate(d)<todayISO()){ mo++; if(mo>11){mo=0;y++;} d=mk(y,mo); }
   return isoDate(d);
 }
-function advanceDue(bill){
-  const d=parseDate(bill.due);
-  if(bill.recurring==='weekly'){ d.setDate(d.getDate()+7); return isoDate(d); }
-  const day=bill.day||d.getDate();
-  let y=d.getFullYear(), mo=d.getMonth()+1; if(mo>11){mo=0;y++;}
-  const last=new Date(y,mo+1,0).getDate();
-  return isoDate(new Date(y,mo,Math.min(day,last)));
+function stepDate(rec,iso){
+  const r=rec.recurring, d=parseDate(iso);
+  if(r==='weekly'||r==='biweekly'){ d.setDate(d.getDate()+(r==='weekly'?7:14)); return isoDate(d); }
+  const k={monthly:1,quarterly:3,yearly:12}[r]; if(!k) return null;
+  const day=rec.day||d.getDate(); let m=d.getMonth()+k, y=d.getFullYear()+Math.floor(m/12); m=m%12;
+  return isoDate(new Date(y,m,Math.min(day,new Date(y,m+1,0).getDate())));
+}
+function advanceDue(bill){ return stepDate(bill,bill.due)||stepDate({recurring:'monthly',day:bill.day},bill.due); }
+function occurrences(rec,key,from,to){
+  const out=[]; let d=rec[key], g=0; if(!d) return out;
+  if(d<from){ out.push(from); if(!stepDate(rec,d)) return out; while(d&&d<from&&g++<600) d=stepDate(rec,d); }
+  while(d&&d<=to&&g++<600){ if(d>=from) out.push(d); d=stepDate(rec,d); }
+  return out;
+}
+function isRecurring(r){ return !!r.recurring && r.recurring!=='none'; }
+function acctById(id){ return db.accounts.find(a=>a.id===id); }
+function bump(id,delta){ const a=acctById(id); if(a&&delta) a.balance=Math.round((num(a.balance)+delta)*100)/100; }
+function defaultAcct(cat){ const s=db.settings, c=cat&&(s.catAcct||{})[cat]; if(c&&acctById(c)) return c; if(s.defAcct&&acctById(s.defAcct)) return s.defAcct; return db.accounts[0]?db.accounts[0].id:''; }
+function acctName(id){ const a=acctById(id); return a?a.name:'—'; }
+function fillAcctSelects(){
+  [['expAcct',()=>defaultAcct($('expCategory')&&$('expCategory').value)],['incAcct',()=>defaultAcct()],['billAcct',()=>defaultAcct()],['defAcct',()=>defaultAcct()]].forEach(([id,def])=>{
+    const el=$(id); if(!el) return; const cur=el.value;
+    el.innerHTML='<option value="">None (don\'t track)</option>'+db.accounts.map(a=>`<option value="${a.id}">${escapeHtml(a.name)}</option>`).join('');
+    el.value=(cur&&acctById(cur))?cur:def();
+  });
 }
 
 // "Month" filters so daily logs don't pile into the monthly totals
 function inCurMonth(s){ if(!s) return true; return s.slice(0,7)===todayISO().slice(0,7); }
 function monthExpenses(){ return db.expenses.filter(e=>inCurMonth(e.date)); }
-function monthIncome(){ return db.income.filter(i=>(i.recurring&&i.recurring!=='none')?true:inCurMonth(i.date)); }
+function incomeReceivedRecs(){ return db.income.filter(i=>!isRecurring(i)&&i.posted!==false); }
+function monthIncome(){
+  const today=todayISO(), end=today.slice(0,8)+'31', out=[];
+  incomeReceivedRecs().filter(i=>inCurMonth(i.date)).forEach(i=>out.push({amount:i.amount}));
+  const to=isoDate(new Date(new Date().getFullYear(),new Date().getMonth()+1,0));
+  db.income.forEach(i=>{ if(isRecurring(i)||i.posted===false) occurrences(i,'date',today,to).forEach(()=>out.push({amount:i.amount})); });
+  return out;
+}
 function sortedExpenses(){ return [...db.expenses].sort((a,b)=>String(b.date||'').localeCompare(String(a.date||''))).slice(0,300); }
 function expensesIn(from,to,cat){ return db.expenses.filter(e=>e.date&&e.date>=from&&e.date<=to&&(!cat||e.category===cat)); }
 
@@ -1463,8 +1534,8 @@ const PROVIDERS = {
 // V5 — DATABASE + PERSISTENCE (IndexedDB + private file + backup)
 // ══════════════════════════════════════════════════════════════
 const DB_KEY = 'fintrack_local_v1';
-const LISTS = ['debts','income','expenses','goals','bills','accounts','meals','memory'];
-function defaultDB(){ return { debts:[],income:[],expenses:[],goals:[],bills:[],accounts:[],meals:[],memory:[],log:[],chat:[],plans:[],settings:{} }; }
+const LISTS = ['debts','income','expenses','goals','bills','accounts','meals','memory','notes'];
+function defaultDB(){ return { debts:[],income:[],expenses:[],goals:[],bills:[],accounts:[],meals:[],memory:[],notes:[],log:[],chat:[],plans:[],settings:{} }; }
 function normalizeDB(o){
   const d=defaultDB();
   if(o && typeof o==='object'){
@@ -1480,6 +1551,9 @@ function normalizeDB(o){
   if(!PROVIDERS[s.provider]) s.provider = (s.provider==='lmstudio') ? 'deepseek' : 'groq';
   if(!s.mode) s.mode='rules';
   if(s.autoLog===undefined) s.autoLog=true;
+  if(!s.fin2){ s.fin2=true; const t=todayISO();
+    d.income.forEach(i=>{ if(isRecurring(i)){ i.day=i.day||(i.date?parseDate(i.date).getDate():1); if(!i.date) i.date=t; let g=0; while(i.date<t&&g++<600){ const n=stepDate(i,i.date); if(!n) break; i.date=n; } } }); }
+  s.catAcct=s.catAcct||{};
   return d;
 }
 let db = defaultDB();
@@ -1693,7 +1767,7 @@ function dueLabel(due){
 // V5 — ACTIONS (shared by rule-based + AI agent), with undo
 // ══════════════════════════════════════════════════════════════
 const AUTO = new Set(['add_expense','add_income','add_meal','set_meal_cost','remember']);
-const ALLOWED = new Set(['add_expense','add_income','add_meal','set_meal_cost','add_bill','pay_bill','set_balance','update','goal_funds','remember']);
+const ALLOWED = new Set(['receive_income','add_expense','add_income','add_meal','set_meal_cost','add_bill','pay_bill','set_balance','update','goal_funds','remember']);
 const FIN_FIELDS = { debt:['name','balance','apr','min'], income:['source','amount','date','recurring'], expense:['desc','amount','category','date'], goal:['name','target','current'] };
 const CAT_COLL = { debt:'debts', income:'income', expense:'expenses', goal:'goals' };
 const NAME_FIELD = { debt:'name', income:'source', expense:'desc', goal:'name' };
@@ -1722,17 +1796,33 @@ function describeAction(a){
 function applyAction(a,undo){
   const add=(coll,obj)=>{ db[coll].push(obj); undo.push({coll,id:obj.id,prev:null}); return obj; };
   const edit=(coll,rec,patch)=>{ undo.push({coll,id:rec.id,prev:JSON.parse(JSON.stringify(rec))}); Object.assign(rec,patch); };
-  const addMealExpense=(m)=>{ const e=add('expenses',{id:uid(),desc:cap(m.meal)+': '+m.text,amount:num(m.cost),category:'Food',date:m.date}); m.expenseId=e.id; };
+  const pickAcct=(a,cat)=>{ const f=a.account&&findByName(db.accounts,'name',a.account); return f?f.id:defaultAcct(cat); };
+  const moveBal=(id,delta)=>{ const ac=acctById(id); if(ac&&delta) edit('accounts',ac,{balance:Math.round((num(ac.balance)+delta)*100)/100}); };
+  const addExp=(o,acctId)=>{ o.acct=acctId||''; const e=add('expenses',o); moveBal(e.acct,-e.amount); if(e.acct&&e.category) db.settings.catAcct[e.category]=e.acct; return e; };
+  const addMealExpense=(m)=>{ const e=addExp({id:uid(),desc:cap(m.meal)+': '+m.text,amount:num(m.cost),category:'Food',date:m.date},defaultAcct('Food')); m.expenseId=e.id; };
   switch(a.type){
     case 'add_expense':{
       const amt=num(a.amount); if(!(amt>0)) return {err:'Expense needs an amount'};
-      const e=add('expenses',{id:uid(),desc:a.desc||'Expense',amount:amt,category:normCat(a.category,a.desc),date:a.date||todayISO()});
-      return {msg:`Logged ${money(e.amount)} — ${e.desc} (${e.category})`};
+      const cat=normCat(a.category,a.desc);
+      const e=addExp({id:uid(),desc:a.desc||'Expense',amount:amt,category:cat,date:a.date||todayISO()},pickAcct(a,cat));
+      return {msg:`Logged ${money(e.amount)} — ${e.desc} (${e.category})${e.acct?' from '+acctName(e.acct):''}`};
     }
     case 'add_income':{
       const amt=num(a.amount); if(!(amt>0)) return {err:'Income needs an amount'};
-      const i=add('income',{id:uid(),source:a.source||'Income',amount:amt,date:a.date||todayISO(),recurring:a.recurring||'none'});
-      return {msg:`Logged income ${money(i.amount)} — ${i.source}`};
+      const rec=a.recurring||'none', dt=a.date||todayISO(), ac=pickAcct(a);
+      const i=add('income',{id:uid(),source:a.source||'Income',amount:amt,date:dt,recurring:rec,day:parseDate(dt).getDate(),acct:ac,posted:rec==='none'?(dt<=todayISO()):undefined});
+      if(i.posted===true) moveBal(ac,i.amount);
+      return {msg:`Logged income ${money(i.amount)} — ${i.source}${i.posted===true&&ac?' into '+acctName(ac):''}`};
+    }
+    case 'receive_income':{
+      const cand=db.income.filter(x=>isRecurring(x)||x.posted===false);
+      const t=cand.find(x=>x.id===a.id)||(a.source&&findByName(cand,'source',a.source))||[...cand].sort((x,y)=>String(x.date).localeCompare(String(y.date)))[0];
+      if(!t) return {err:'No expected income to mark received'};
+      const amt=a.amount!=null&&a.amount!==''?num(a.amount):num(t.amount);
+      if(isRecurring(t)){ add('income',{id:uid(),source:t.source,amount:amt,date:todayISO(),recurring:'none',acct:t.acct,posted:true,from:t.id}); edit('income',t,{date:stepDate(t,t.date)||t.date}); }
+      else edit('income',t,{posted:true,date:todayISO(),amount:amt});
+      moveBal(t.acct,amt);
+      return {msg:`Received ${money(amt)} — ${t.source}${t.acct?' into '+acctName(t.acct):''}`};
     }
     case 'add_meal':{
       const meal=normMeal(a.meal);
@@ -1746,7 +1836,7 @@ function applyAction(a,undo){
       const m=db.meals.find(x=>x.id===a.id) || [...db.meals].reverse().find(x=>x.cost==null);
       if(!m) return {err:'No meal waiting for a cost'};
       edit('meals',m,{cost});
-      if(m.expenseId){ const ex=db.expenses.find(x=>x.id===m.expenseId); if(ex) edit('expenses',ex,{amount:cost}); }
+      if(m.expenseId){ const ex=db.expenses.find(x=>x.id===m.expenseId); if(ex){ moveBal(ex.acct,-(cost-num(ex.amount))); edit('expenses',ex,{amount:cost}); } }
       else addMealExpense(m);
       return {msg:`Set ${m.meal} (${m.text}) to ${money(cost)}`};
     }
@@ -1759,7 +1849,7 @@ function applyAction(a,undo){
     case 'pay_bill':{
       const b=findByName(db.bills,'name',a.name); if(!b) return {err:`No bill named "${a.name}"`};
       const amt=a.amount!=null&&a.amount!==''?num(a.amount):num(b.amount);
-      add('expenses',{id:uid(),desc:b.name+' (bill)',amount:amt,category:normCat(null,b.name),date:todayISO()});
+      addExp({id:uid(),desc:b.name+' (bill)',amount:amt,category:normCat(null,b.name),date:todayISO()},b.acct!==undefined&&b.acct!==''?b.acct:(b.acct===''?'':defaultAcct()));
       if(b.recurring==='none'){
         undo.push({coll:'bills',id:b.id,prev:JSON.parse(JSON.stringify(b))});
         db.bills=db.bills.filter(x=>x.id!==b.id);
@@ -1780,6 +1870,7 @@ function applyAction(a,undo){
       const rec=findByName(db[CAT_COLL[cat]],NAME_FIELD[cat],a.match);
       if(!rec) return {err:`Not found: "${a.match}"`};
       let v=a.value; if(v!==''&&!isNaN(v)&&!['name','source','desc','date','category','recurring'].includes(a.field)) v=parseFloat(v);
+      if(a.field==='amount'&&typeof v==='number'){ if(cat==='expense') moveBal(rec.acct,-(v-num(rec.amount))); else if(cat==='income'&&rec.posted===true) moveBal(rec.acct,v-num(rec.amount)); }
       edit(CAT_COLL[cat],rec,{[a.field]:v});
       return {msg:`Updated ${cat} "${rec[NAME_FIELD[cat]]}" — ${a.field}: ${v}`};
     }
@@ -1906,6 +1997,7 @@ function replyBalance(){
   let r='**Accounts**\n'+db.accounts.map(a=>`- ${escapeHtml(a.name)}: **${money(num(a.balance))}**`).join('\n');
   r+=`\n\nTotal **${money(cash)}**. Bills due in the next 14 days: **${money(due)}**${b14.length?' ('+b14.length+')':''}.`;
   r+=`\n\nAfter those bills you have about **${money(cash-due)}**.`;
+  { const f=buildForecast(30); r+=`\n\nIn 30 days: about **${money(f.end)}** (lowest **${money(f.low.bal)}** on ${formatDate(f.low.date)}).`; }
   return r;
 }
 function replyBills(){
@@ -1952,14 +2044,17 @@ function replyOverview(){
   return r;
 }
 
+function acctFromText(t){ const a=db.accounts.find(x=>new RegExp('\\b'+String(x.name).toLowerCase().replace(/[.*+?^${}()|[\]\\]/g,'\\$&')+'\\b').test(t)); return a?a.name:undefined; }
 function ruleAgent(raw){
   const t=raw.toLowerCase().trim();
+  if(/\b(got paid|i got paid|payday|paycheck (came|arrived|hit)|received (my )?(pay|paycheck))\b/.test(t) && findAmount(raw)==null && db.income.some(i=>isRecurring(i)||i.posted===false)) return {reply:'',actions:[{type:'receive_income',source:(db.income.find(i=>t.includes(String(i.source).toLowerCase()))||{}).source}]};
   if(/^(help|\?|what can you do)/.test(t)) return {reply:HELP};
   const amt=findAmount(raw);
   const isQuery=/^(how|what|whats|what's|when|which|show|list|tell me|where|can i|do i|am i|summary|overview|total)\b/.test(t)||/\?\s*$/.test(t);
 
   if(isQuery){
     if(/\bbills?\b|\bdue\b/.test(t)) return {reply:replyBills()};
+    if(/forecast|project|run out|will i have|going to have|outlook/.test(t)) return {reply:replyForecast()};
     if(/balance|cash|how much money|safe to spend|account/.test(t)) return {reply:replyBalance()};
     if(/\b(breakfast|lunch|dinner|snack|meals?)\b/.test(t)) return {reply:replyMeals(t)};
     if(/spen[dt]|spending|cost|paid/.test(t)) return {reply:replySpend(t)};
@@ -1989,7 +2084,7 @@ function ruleAgent(raw){
   // income
   if(/\b(got paid|paycheck|payday|earned|received|deposited|direct deposit|refund)\b/.test(t) && amt!=null){
     const from=raw.match(/\bfrom\s+(.+?)(?:\s+\$|\s*$)/i);
-    return {reply:'',actions:[{type:'add_income',source:from?cap(from[1].trim()):(/paycheck|got paid|payday/.test(t)?'Paycheck':'Income'),amount:amt,date:dateFromText(t),recurring:'none'}]};
+    return {reply:'',actions:[{type:'add_income',source:from?cap(from[1].trim()):(/paycheck|got paid|payday/.test(t)?'Paycheck':'Income'),amount:amt,date:dateFromText(t),recurring:'none',account:acctFromText(t)}]};
   }
   // meal
   if(/\b(breakfast|lunch|dinner|supper|snack|brunch)\b/.test(t)||/\b(having|eating|ate|grabbing)\b/.test(t)){
@@ -2003,7 +2098,7 @@ function ruleAgent(raw){
   }
   // expense
   if((/\b(spent|paid|bought|purchased|cost me|ordered|grabbed|got)\b/.test(t)||/^\$/.test(t)) && amt!=null){
-    return {reply:'',actions:[{type:'add_expense',desc:expenseDescFrom(raw),amount:amt,date:dateFromText(t)}]};
+    return {reply:'',actions:[{type:'add_expense',desc:expenseDescFrom(raw),amount:amt,date:dateFromText(t),account:acctFromText(t)}]};
   }
   const bare=raw.trim().match(/^([A-Za-z][A-Za-z \-']{1,30}?)\s+\$?(\d+(?:\.\d{1,2})?)$/);
   if(bare) return {reply:'',actions:[{type:'add_expense',desc:cap(bare[1].trim()),amount:parseFloat(bare[2]),date:todayISO()}]};
@@ -2063,6 +2158,7 @@ function buildContext(){
   return `TODAY: ${today} (${DAYNAMES[new Date().getDay()]})
 THIS MONTH: income ${t.totInc}, expenses ${t.totExp}, minimum debt payments ${t.minDebt}, disposable ${t.disposable}
 ACCOUNTS: ${JSON.stringify(db.accounts.map(a=>({name:a.name,balance:a.balance})))}
+FORECAST 30 DAYS: ${(()=>{ const f=buildForecast(30); return 'ends '+f.end.toFixed(2)+', lowest '+f.low.bal.toFixed(2)+' on '+f.low.date+', expected income '+f.inc.toFixed(2)+', bills+spending '+f.out.toFixed(2); })()}
 BILLS: ${JSON.stringify(db.bills.map(b=>({name:b.name,amount:b.amount,due:b.due,repeats:b.recurring})))}
 DEBTS: ${JSON.stringify(db.debts.map(d=>({name:d.name,balance:d.balance,apr:d.apr,min:d.min})))}
 GOALS: ${JSON.stringify(db.goals.map(g=>({name:g.name,target:g.target,current:g.current})))}
@@ -2081,13 +2177,14 @@ Return ONLY a JSON object: {"reply":"markdown text","actions":[...]}
 {"type":"add_income","source":"","amount":0,"date":"YYYY-MM-DD","recurring":"none"}
 {"type":"add_meal","meal":"breakfast|lunch|dinner|snack","text":"","cost":0,"date":"YYYY-MM-DD"}   (omit cost if unknown)
 {"type":"set_meal_cost","cost":0}   (sets cost of the latest meal without one)
-{"type":"add_bill","name":"","amount":0,"due":"YYYY-MM-DD","recurring":"monthly|weekly|none"}
+{"type":"add_bill","name":"","amount":0,"due":"YYYY-MM-DD","recurring":"monthly|biweekly|weekly|quarterly|yearly|none"}
 {"type":"pay_bill","name":""}
+{"type":"receive_income","source":"income name"}   (user got paid / received expected income)
 {"type":"set_balance","account":"Checking","amount":0}
 {"type":"update","category":"debt|income|expense|goal","match":"name","field":"","value":""}
 {"type":"goal_funds","match":"goal name","amount":0}
 {"type":"remember","note":"short fact about the user's habits"}
-Rules: dates are ISO; amounts are plain numbers. Only include an action when the user clearly stated the facts; if the price of a meal is missing, ask for it in the reply and leave cost out. If the user is just asking a question, return an empty actions list. Never say something was saved unless you included the action. For spending questions, add up from the DATA. Keep replies under 120 words unless asked for more.`;
+add_expense and add_income may include an optional "account" (account name) when the user says where money came from or went. Rules: dates are ISO; amounts are plain numbers. Only include an action when the user clearly stated the facts; if the price of a meal is missing, ask for it in the reply and leave cost out. If the user is just asking a question, return an empty actions list. Never say something was saved unless you included the action. For spending questions, add up from the DATA. Keep replies under 120 words unless asked for more.`;
 
 async function aiAgent(text){
   const hist=db.chat.slice(-9,-1).map(m=>({role:m.role==='user'?'user':'assistant',content:String(m.text).slice(0,600)}));
@@ -2438,18 +2535,20 @@ function buildIdeas(){
 }
 function renderToday(){
   if(!$('todayTiles')) return;
+  fillAcctSelects();
   const today=todayISO(), wk=startOfWeekISO(), mo=today.slice(0,7);
   $('todayAsOf').textContent=new Date().toLocaleDateString(undefined,{weekday:'long',month:'short',day:'numeric'});
   const cash=sumBy(db.accounts,a=>a.balance);
   const spentToday=sumBy(expensesIn(today,today),e=>e.amount);
   const spentWeek=sumBy(expensesIn(wk,today),e=>e.amount);
   const b14=upcomingBills(14), due14=sumBy(b14,b=>b.amount);
-  const safe=cash-due14;
+  const safe=cash-due14, f30=buildForecast(30);
   $('todayTiles').innerHTML=`
     <div class="tile ${db.accounts.length?'good':''}"><div class="tile-label"><span class="tile-icon" style="background:var(--good)"></span>Cash</div><div class="tile-val">${db.accounts.length?money(cash):'—'}</div><div class="tile-sub">${db.accounts.length} account${db.accounts.length===1?'':'s'}</div></div>
     <div class="tile expense"><div class="tile-label"><span class="tile-icon" style="background:var(--accent2)"></span>Spent today</div><div class="tile-val">${money(spentToday)}</div><div class="tile-sub">Week: ${money(spentWeek)}</div></div>
     <div class="tile"><div class="tile-label"><span class="tile-icon" style="background:var(--yellow)"></span>Bills, 14 days</div><div class="tile-val">${money(due14)}</div><div class="tile-sub">${b14.length} bill${b14.length===1?'':'s'}</div></div>
-    <div class="tile ${db.accounts.length?(safe>=0?'good':'debt'):''}"><div class="tile-label"><span class="tile-icon" style="background:var(--accent)"></span>After bills</div><div class="tile-val">${db.accounts.length?money(safe):'—'}</div><div class="tile-sub">Cash minus bills due</div></div>`;
+    <div class="tile ${db.accounts.length?(safe>=0?'good':'debt'):''}"><div class="tile-label"><span class="tile-icon" style="background:var(--accent)"></span>After bills</div><div class="tile-val">${db.accounts.length?money(safe):'—'}</div><div class="tile-sub">Cash minus bills due</div></div>
+    <div class="tile ${db.accounts.length?(f30.low.bal>=0?'good':'debt'):''}"><div class="tile-label"><span class="tile-icon" style="background:var(--purple)"></span>30-day outlook</div><div class="tile-val">${db.accounts.length?money(f30.end):'—'}</div><div class="tile-sub">Low ${money0(f30.low.bal)}</div></div>`;
   const ideas=buildIdeas();
   $('todayIdeas').innerHTML=ideas.length?ideas.map(i=>`<div class="idea">${i}</div>`).join(''):'Log a few days of spending and I\'ll start spotting patterns.';
   $('accountList').innerHTML=db.accounts.length?db.accounts.map(a=>`<div class="list-row"><span>${escapeHtml(a.name)}</span><span><strong>${money(num(a.balance))}</strong></span><span class="btns"><button class="btn secondary" data-action="setAccount" data-id="${a.id}">Set</button><button class="btn danger" aria-label="Delete account" data-action="deleteAccount" data-id="${a.id}">X</button></span></div>`).join(''):'<div class="small">No accounts yet. Add one, or tell the assistant "my checking balance is $2,400".</div>';
@@ -2488,7 +2587,7 @@ function setMealCost(id){
 }
 function deleteMeal(id){
   const m=db.meals.find(x=>x.id===id); if(!m||!confirm('Delete this meal'+(m.expenseId?' and its expense':'')+'?')) return;
-  if(m.expenseId) db.expenses=db.expenses.filter(e=>e.id!==m.expenseId);
+  if(m.expenseId){ const ex=db.expenses.find(e=>e.id===m.expenseId); if(ex) bump(ex.acct,num(ex.amount)); db.expenses=db.expenses.filter(e=>e.id!==m.expenseId); }
   db.meals=db.meals.filter(x=>x.id!==id); scheduleSave(); renderAll();
 }
 function payBill(id){
@@ -2498,17 +2597,17 @@ function payBill(id){
 function submitBill(){
   const name=$('billName').value.trim(), amount=parseFloat($('billAmount').value)||0, due=$('billDue').value, recurring=$('billRecurring').value;
   if(!name||amount<=0||!due) return alert('Enter a name, amount and due date');
-  db.bills.push({id:uid(),name,amount,due,day:parseDate(due).getDate(),recurring});
-  scheduleSave(); renderBills(); renderToday();
+  db.bills.push({id:uid(),name,amount,due,day:parseDate(due).getDate(),recurring,acct:$('billAcct').value});
+  scheduleSave(); renderBills(); renderToday(); renderCalendar();
   $('billName').value=''; $('billAmount').value=''; $('billDue').value='';
 }
-function deleteBill(id){ if(!confirm('Delete this bill?')) return; db.bills=db.bills.filter(b=>b.id!==id); scheduleSave(); renderBills(); renderToday(); }
+function deleteBill(id){ if(!confirm('Delete this bill?')) return; db.bills=db.bills.filter(b=>b.id!==id); scheduleSave(); renderBills(); renderToday(); renderCalendar(); }
 function renderBills(){
   const tb=$('billTable'); if(!tb) return;
   const list=[...db.bills].sort((a,b)=>String(a.due).localeCompare(String(b.due)));
   tb.innerHTML=list.length?list.map(b=>{
     const n=daysBetween(todayISO(),b.due);
-    return `<tr><td>${escapeHtml(b.name)}<div class="tiny">${b.recurring==='none'?'one time':b.recurring}</div></td><td class="num">${money(num(b.amount))}</td><td><span class="badge ${n<0?'bad':n<=7?'warn':''}">${dueLabel(b.due)}</span><div class="tiny">${formatDate(b.due)}</div></td><td><button class="btn" data-action="payBill" data-id="${b.id}">Paid</button> <button class="btn danger" aria-label="Delete bill" data-action="deleteBill" data-id="${b.id}">X</button></td></tr>`;
+    return `<tr><td>${escapeHtml(b.name)}<div class="tiny">${b.recurring==='none'?'one time':b.recurring}${b.acct?' · '+escapeHtml(acctName(b.acct)):''}</div></td><td class="num">${money(num(b.amount))}</td><td><span class="badge ${n<0?'bad':n<=7?'warn':''}">${dueLabel(b.due)}</span><div class="tiny">${formatDate(b.due)}</div></td><td><button class="btn" data-action="payBill" data-id="${b.id}">Paid</button> <button class="btn danger" aria-label="Delete bill" data-action="deleteBill" data-id="${b.id}">X</button></td></tr>`;
   }).join(''):'<tr><td colspan="4" class="small">No bills yet</td></tr>';
 }
 
@@ -2586,6 +2685,84 @@ async function memberSignOut(){
 // ══════════════════════════════════════════════════════════════
 // V5 — SETTINGS
 // ══════════════════════════════════════════════════════════════
+// ══════════════════════════════════════════════════════════════
+// FORECAST + CALENDAR
+// ══════════════════════════════════════════════════════════════
+let calMonth=null, calSel=null;
+function calEvents(from,to){
+  const ev=[];
+  db.bills.forEach(b=>occurrences(b,'due',from,to).forEach(d=>ev.push({date:d,type:'bill',id:b.id,label:b.name,amt:-num(b.amount),late:b.due<from&&d===from})));
+  db.income.forEach(i=>{ if(isRecurring(i)||i.posted===false) occurrences(i,'date',from,to).forEach(d=>ev.push({date:d,type:'income',id:i.id,label:i.source,amt:num(i.amount),late:i.date<from&&d===from})); });
+  db.notes.forEach(n=>{ if(n.date>=from&&n.date<=to) ev.push({date:n.date,type:'plan',id:n.id,label:n.text,kind:n.kind,amt:n.kind==='expense'?-num(n.amt):n.kind==='income'?num(n.amt):0}); });
+  return ev.sort((a,b)=>a.date.localeCompare(b.date));
+}
+function avgDailySpend(){
+  const today=todayISO(), from=addDaysISO(today,-28);
+  const list=db.expenses.filter(e=>e.date&&e.date>=from&&e.date<=today&&!/\(bill\)$/.test(e.desc||''));
+  if(!list.length) return 0;
+  const first=list.reduce((m,e)=>e.date<m?e.date:m,today);
+  return sumBy(list,e=>e.amount)/Math.max(7,Math.min(28,daysBetween(first,today)+1));
+}
+function buildForecast(days){
+  const today=todayISO(), ev=calEvents(today,addDaysISO(today,days)), avg=avgDailySpend(), by={};
+  ev.forEach(e=>{ (by[e.date]=by[e.date]||[]).push(e); });
+  let bal=sumBy(db.accounts,a=>a.balance), inc=0, out=0, low={bal,date:today}, firstNeg=bal<0?today:null;
+  const series=[{date:today,bal}];
+  for(let i=0;i<=days;i++){
+    const d=addDaysISO(today,i);
+    (by[d]||[]).forEach(e=>{ bal+=e.amt; if(e.amt>0) inc+=e.amt; else out-=e.amt; });
+    if(i>0){ bal-=avg; out+=avg; series.push({date:d,bal}); } else series[0].bal=bal;
+    if(bal<low.bal) low={bal,date:d};
+    if(bal<0&&!firstNeg) firstNeg=d;
+  }
+  return {series,by,end:bal,low,firstNeg,inc,out,avg};
+}
+function replyForecast(){
+  if(!db.accounts.length) return 'Add an account balance first, e.g. **"my checking balance is $2,400"**, then I can project ahead.';
+  const f=buildForecast(30), now=sumBy(db.accounts,a=>a.balance);
+  return `**30-day outlook**\n- Now: **${money(now)}**\n- Expected income: **${money(f.inc)}**\n- Bills + typical spending: **${money(f.out)}**\n- Projected: **${money(f.end)}**\n- Lowest point: **${money(f.low.bal)}** on ${formatDate(f.low.date)}`+(f.firstNeg?`\n\n⚠️ You may go negative around **${formatDate(f.firstNeg)}**.`:'');
+}
+function calShift(n){ const [y,m]=calMonth.split('-').map(Number); const d=new Date(y,m-1+n,1); calMonth=d.getFullYear()+'-'+pad(d.getMonth()+1); renderCalendar(); }
+function addNote(){
+  const text=$('noteText').value.trim(); if(!text) return alert('Enter a note');
+  db.notes.push({id:uid(),date:calSel||todayISO(),text,amt:num($('noteAmt').value),kind:$('noteKind').value});
+  $('noteText').value=''; $('noteAmt').value=''; scheduleSave(); renderAll();
+}
+function deleteNote(id){ db.notes=db.notes.filter(n=>n.id!==id); scheduleSave(); renderAll(); }
+function renderCalendar(){
+  if(!$('calGrid')) return;
+  const today=todayISO(); if(!calMonth) calMonth=today.slice(0,7); if(!calSel) calSel=today;
+  const [Y,M]=calMonth.split('-').map(Number), first=new Date(Y,M-1,1), mStart=isoDate(first), mEnd=isoDate(new Date(Y,M,0));
+  const fc=buildForecast(Math.min(400,Math.max(90,daysBetween(today,mEnd)+1))), bm={}; fc.series.forEach(x=>{ bm[x.date]=x.bal; });
+  const at=(n)=>{ const x=fc.series[n]; return x?x.bal:fc.end; };
+  const hasAcc=db.accounts.length>0;
+  $('fcTiles').innerHTML=hasAcc?[['Now',0],['In 30 days',30],['In 60 days',60],['In 90 days',90]].map(([l,n])=>{ const v=at(n); return `<div class="tile ${v>=0?'good':'debt'}"><div class="tile-label">${l}</div><div class="tile-val">${money0(v)}</div></div>`; }).join(''):'<div class="small">Add an account balance on the Today tab to see your forecast.</div>';
+  const f90=buildForecast(90);
+  $('fcWarn').innerHTML=hasAcc?(f90.firstNeg?`⚠️ Projected to go negative around <strong>${formatDate(f90.firstNeg)}</strong> (low ${money(f90.low.bal)}). Move a bill or add income before then.`:`Lowest projected balance in 90 days: <strong>${money(f90.low.bal)}</strong> on ${formatDate(f90.low.date)}.`)+`<div class="tiny">Includes bills, expected income, planned items and about ${money(f90.avg)}/day of typical spending.</div>`:'';
+  const ev=calEvents(mStart,mEnd), byD={}; ev.forEach(e=>{ (byD[e.date]=byD[e.date]||[]).push(e); });
+  const spent={}; db.expenses.forEach(e=>{ if(e.date) spent[e.date]=(spent[e.date]||0)+num(e.amount); });
+  $('calTitle').textContent=first.toLocaleDateString(undefined,{month:'long',year:'numeric'});
+  let g=['Sun','Mon','Tue','Wed','Thu','Fri','Sat'].map(x=>`<div class="cal-dow">${x}</div>`).join('');
+  for(let i=0;i<first.getDay();i++) g+='<div></div>';
+  const dim=new Date(Y,M,0).getDate();
+  for(let day=1;day<=dim;day++){
+    const d=calMonth+'-'+pad(day), list=byD[d]||[], b=bm[d];
+    const dots=['income','bill','plan'].filter(t=>list.some(e=>e.type===t)).map(t=>`<span class="cal-dot" style="background:${t==='income'?'var(--good)':t==='bill'?'var(--bad)':'var(--yellow)'}"></span>`).join('')+(spent[d]?'<span class="cal-dot" style="background:var(--muted)"></span>':'');
+    g+=`<div class="cal-day ${d===today?'today':''} ${d===calSel?'sel':''} ${b<0?'neg':''}" data-action="calSel" data-date="${d}"><div>${day}</div><div class="cal-dots">${dots}</div><div class="cal-bal">${b!==undefined?money0(b):''}</div></div>`;
+  }
+  $('calGrid').innerHTML=g;
+  $('calDayTitle').textContent=formatDate(calSel)+(bm[calSel]!==undefined?' — projected '+money(bm[calSel]):'');
+  const dl=[];
+  calEvents(calSel,calSel).forEach(e=>{
+    const inc=e.type==='income'&&db.income.find(i=>i.id===e.id&&(isRecurring(i)||i.posted===false));
+    const btn=e.type==='bill'?`<button class="btn" data-action="payBill" data-id="${e.id}">Paid</button>`:inc?`<button class="btn" data-action="receiveIncome" data-id="${e.id}">Received</button>`:e.type==='plan'?`<button class="btn danger" aria-label="Delete note" data-action="deleteNote" data-id="${e.id}">X</button>`:'';
+    dl.push(`<div class="list-row"><span>${escapeHtml(e.label)}<div class="tiny">${e.type==='plan'?(e.kind==='note'?'note':'planned '+e.kind):e.type}${e.late?' · overdue':''}</div></span><span><strong>${e.amt?money(Math.abs(e.amt)):''}</strong></span><span class="btns">${btn}</span></div>`);
+  });
+  db.expenses.filter(e=>e.date===calSel).forEach(e=>dl.push(`<div class="list-row"><span>${escapeHtml(e.desc)}<div class="tiny">spent · ${escapeHtml(e.category||'')}${e.acct?' · '+escapeHtml(acctName(e.acct)):''}</div></span><span><strong>${money(num(e.amount))}</strong></span><span></span></div>`));
+  db.income.filter(i=>!isRecurring(i)&&i.posted!==false&&i.date===calSel).forEach(i=>dl.push(`<div class="list-row"><span>${escapeHtml(i.source)}<div class="tiny">received${i.acct?' · '+escapeHtml(acctName(i.acct)):''}</div></span><span><strong>${money(num(i.amount))}</strong></span><span></span></div>`));
+  $('calDayList').innerHTML=dl.join('')||'<div class="small">Nothing on this day.</div>';
+}
+
 function renderSettings(){
   if(!$('aiMode')) return;
   const s=db.settings;
@@ -2594,6 +2771,7 @@ function renderSettings(){
   $('aiModel').placeholder=PROVIDERS[s.provider].model;
   $('manualKeyBox').style.display=s.provider==='premium'?'none':'';
   renderMember();
+  fillAcctSelects();
   $('autoLog').checked=s.autoLog!==false;
   const ts=document.getElementById('themeSelect');
   if(ts) ts.value=s.theme||'dark';
@@ -2613,7 +2791,7 @@ function saveSettings(){
   s.keys=s.keys||{}; s.models=s.models||{};
   if(p!=='premium'){ const k=$('aiKey').value.trim(); if(k) s.keys[p]=k; else delete s.keys[p]; }
   const m=$('aiModel').value.trim(); if(m) s.models[p]=m; else delete s.models[p];
-  s.autoLog=$('autoLog').checked;
+  s.autoLog=$('autoLog').checked; s.defAcct=$('defAcct').value;
   // Theme — read from select if present
   const ts=document.getElementById('themeSelect');
   if(ts){ s.theme=ts.value; applyTheme(ts.value); }
@@ -2639,12 +2817,14 @@ function switchTab(tabId){
   if(tabId==='insights') renderInsights();
   if(tabId==='today') renderToday();
   if(tabId==='bills') renderBills();
+  if(tabId==='calendar') renderCalendar();
   if(tabId==='settings') renderSettings();
   if(tabId==='assistant'){ const l=$('chatLog'); l.scrollTop=l.scrollHeight; }
   const nb=document.querySelector(`nav button[data-tab="${tabId}"]`); if(nb&&nb.scrollIntoView) nb.scrollIntoView({inline:'center',block:'nearest'});
   window.scrollTo(0,0);
 }
 function renderAll(){
+  fillAcctSelects(); renderCalendar();
   renderDebts(); renderIncome(); renderExpenses(); renderGoals();
   renderDashboard(); renderSIStats(); renderInsights(); renderBills(); renderToday();
 }
@@ -2657,6 +2837,7 @@ document.addEventListener('DOMContentLoaded', async () => {
   initTheme();
   setSaveState(true);
   memberInit();
+  if($('expCategory')) $('expCategory').addEventListener('change',()=>{ const a=(db.settings.catAcct||{})[$('expCategory').value]; if(a&&acctById(a)) $('expAcct').value=a; });
 
   document.body.addEventListener('click', (e) => {
     const el = e.target.closest('[data-action]');
@@ -2664,6 +2845,12 @@ document.addEventListener('DOMContentLoaded', async () => {
     const action = el.dataset.action, id = el.dataset.id;
     switch(action) {
       case 'tab': switchTab(el.dataset.tab); break;
+      case 'receiveIncome': receiveIncome(el.dataset.id); break;
+      case 'calPrev': calShift(-1); break;
+      case 'calNext': calShift(1); break;
+      case 'calSel': calSel=el.dataset.date; renderCalendar(); break;
+      case 'addNote': addNote(); break;
+      case 'deleteNote': deleteNote(el.dataset.id); break;
       case 'submitDebt': submitDebt(); break;
       case 'cancelDebtEdit': cancelDebtEdit(); break;
       case 'editDebt': editDebt(id); break;
@@ -3189,45 +3376,61 @@ function renderDebts(){
 
 let editIncomeId=null;
 function submitIncome(){
-  const source=document.getElementById('incSource').value.trim();
-  const amount=parseFloat(document.getElementById('incAmount').value)||0;
-  const date=document.getElementById('incDate').value;
-  const recurring=document.getElementById('incRecurring').value;
+  const source=$('incSource').value.trim(), amount=parseFloat($('incAmount').value)||0;
+  const recurring=$('incRecurring').value, acct=$('incAcct').value, rec=recurring!=='none';
+  const date=$('incDate').value||todayISO();
   if(!source||amount<=0) return alert('Enter source and amount');
-  if(editIncomeId){ const d=db.income.find(x=>x.id===editIncomeId); Object.assign(d,{source,amount,date,recurring}); cancelIncomeEdit(); }
-  else { db.income.push({id:uid(),source,amount,date,recurring}); }
-  debouncedSaveDB(); renderIncome(); renderDashboard(); renderInsights();
-  document.getElementById('incSource').value=''; document.getElementById('incAmount').value=''; document.getElementById('incDate').value='';
+  if(editIncomeId){
+    const d=db.income.find(x=>x.id===editIncomeId);
+    if(d.posted===true) bump(d.acct,-num(d.amount));
+    Object.assign(d,{source,amount,date,recurring,acct,day:parseDate(date).getDate()});
+    if(rec) delete d.posted;
+    if(d.posted===true) bump(acct,amount);
+    cancelIncomeEdit();
+  } else {
+    const posted=rec?undefined:(date<=todayISO());
+    db.income.push({id:uid(),source,amount,date,recurring,day:parseDate(date).getDate(),acct,posted});
+    if(posted===true) bump(acct,amount);
+  }
+  debouncedSaveDB(); renderAll();
+  $('incSource').value=''; $('incAmount').value=''; $('incDate').value='';
 }
-function editIncome(id){ const d=db.income.find(x=>x.id===id); editIncomeId=id; document.getElementById('incSource').value=d.source; document.getElementById('incAmount').value=d.amount; document.getElementById('incDate').value=d.date; document.getElementById('incRecurring').value=d.recurring; document.getElementById('incSubmitBtn').textContent='Update Income'; document.getElementById('incCancelBtn').style.display='inline-block'; }
+function editIncome(id){ const d=db.income.find(x=>x.id===id); editIncomeId=id; $('incSource').value=d.source; $('incAmount').value=d.amount; $('incDate').value=d.date; $('incRecurring').value=d.recurring; $('incAcct').value=d.acct||''; $('incSubmitBtn').textContent='Update Income'; $('incCancelBtn').style.display='inline-block'; }
 function cancelIncomeEdit(){ editIncomeId=null; document.getElementById('incSubmitBtn').textContent='Add Income'; document.getElementById('incCancelBtn').style.display='none'; }
-function deleteIncome(id){ if(!confirm('Delete?')) return; db.income=db.income.filter(d=>d.id!==id); debouncedSaveDB(); renderIncome(); renderDashboard(); renderInsights(); }
+function deleteIncome(id){ if(!confirm('Delete?')) return; const d=db.income.find(x=>x.id===id); if(d&&d.posted===true) bump(d.acct,-num(d.amount)); db.income=db.income.filter(x=>x.id!==id); debouncedSaveDB(); renderAll(); }
 function renderIncome(){
-  const tb=document.getElementById('incomeTable');
-  tb.innerHTML = db.income.length ? db.income.map(d => `<tr>
-    <td><span class="cat-chip" style="background:var(--good)"></span>${escapeHtml(d.source)}</td>
+  const tb=$('incomeTable'); if(!tb) return; const today=todayISO();
+  const up=db.income.filter(i=>isRecurring(i)||i.posted===false).sort((a,b)=>String(a.date).localeCompare(String(b.date)));
+  const got=db.income.filter(i=>!isRecurring(i)&&i.posted!==false).sort((a,b)=>String(b.date).localeCompare(String(a.date))).slice(0,100);
+  const row=(d,exp)=>`<tr>
+    <td><span class="cat-chip" style="background:var(--good)"></span>${escapeHtml(d.source)}${exp?`<div class="tiny">${d.date<today?'overdue — mark received when it lands':'expected '+dueLabel(d.date)}</div>`:''}</td>
     <td class="num">${money(d.amount)}</td>
     <td>${formatDate(d.date)}</td>
-    <td><span class="badge ${d.recurring!=='none'?'accent':''}">${d.recurring}</span></td>
-    <td><button class="btn secondary" data-action="editIncome" data-id="${d.id}">Edit</button> <button class="btn danger" aria-label="Delete income" data-action="deleteIncome" data-id="${d.id}">X</button></td>
-  </tr>`).join('') : '<tr><td colspan="5" class="small">No income yet</td></tr>';
+    <td><span class="badge ${isRecurring(d)?'accent':exp?'warn':'good'}">${isRecurring(d)?d.recurring:exp?'expected':'received'}</span></td>
+    <td>${d.acct?escapeHtml(acctName(d.acct)):'—'}</td>
+    <td>${exp?`<button class="btn" data-action="receiveIncome" data-id="${d.id}">Received</button> `:''}<button class="btn secondary" data-action="editIncome" data-id="${d.id}">Edit</button> <button class="btn danger" aria-label="Delete income" data-action="deleteIncome" data-id="${d.id}">X</button></td>
+  </tr>`;
+  tb.innerHTML=(up.length||got.length)?up.map(d=>row(d,true)).join('')+got.map(d=>row(d,false)).join(''):'<tr><td colspan="6" class="small">No income yet</td></tr>';
 }
+function receiveIncome(id){ const r=applyActions([{type:'receive_income',id}]); toast(r.sums[0]||r.errs[0]||''); }
 
 let editExpenseId=null;
 function submitExpense(){
   const desc=document.getElementById('expDesc').value.trim();
   const amount=parseFloat(document.getElementById('expAmount').value)||0;
   const category=document.getElementById('expCategory').value;
-  const date=document.getElementById('expDate').value;
+  const date=document.getElementById('expDate').value||todayISO();
+  const acct=$('expAcct').value;
   if(!desc||amount<=0) return alert('Enter description and amount');
-  if(editExpenseId){ const d=db.expenses.find(x=>x.id===editExpenseId); Object.assign(d,{desc,amount,category,date}); cancelExpenseEdit(); }
-  else { db.expenses.push({id:uid(),desc,amount,category,date}); }
-  debouncedSaveDB(); renderExpenses(); renderDashboard(); renderInsights();
+  if(editExpenseId){ const d=db.expenses.find(x=>x.id===editExpenseId); bump(d.acct,num(d.amount)); Object.assign(d,{desc,amount,category,date,acct}); bump(acct,-amount); cancelExpenseEdit(); }
+  else { db.expenses.push({id:uid(),desc,amount,category,date,acct}); bump(acct,-amount); }
+  if(acct) db.settings.catAcct[category]=acct;
+  debouncedSaveDB(); renderAll();
   document.getElementById('expDesc').value=''; document.getElementById('expAmount').value=''; document.getElementById('expDate').value='';
 }
-function editExpense(id){ const d=db.expenses.find(x=>x.id===id); editExpenseId=id; document.getElementById('expDesc').value=d.desc; document.getElementById('expAmount').value=d.amount; document.getElementById('expCategory').value=d.category; document.getElementById('expDate').value=d.date; document.getElementById('expSubmitBtn').textContent='Update Expense'; document.getElementById('expCancelBtn').style.display='inline-block'; }
+function editExpense(id){ const d=db.expenses.find(x=>x.id===id); editExpenseId=id; $('expDesc').value=d.desc; $('expAmount').value=d.amount; $('expCategory').value=d.category; $('expDate').value=d.date; $('expAcct').value=d.acct||''; $('expSubmitBtn').textContent='Update Expense'; $('expCancelBtn').style.display='inline-block'; }
 function cancelExpenseEdit(){ editExpenseId=null; document.getElementById('expSubmitBtn').textContent='Add Expense'; document.getElementById('expCancelBtn').style.display='none'; }
-function deleteExpense(id){ if(!confirm('Delete?')) return; db.expenses=db.expenses.filter(d=>d.id!==id); debouncedSaveDB(); renderExpenses(); renderDashboard(); renderInsights(); }
+function deleteExpense(id){ if(!confirm('Delete?')) return; const d=db.expenses.find(x=>x.id===id); if(d) bump(d.acct,num(d.amount)); db.expenses=db.expenses.filter(x=>x.id!==id); debouncedSaveDB(); renderAll(); }
 
 const CAT_COLORS = { Housing:'#60a5fa', Food:'#f472b6', Transport:'#fbbf24', Utilities:'#a78bfa', Entertainment:'#f97316', Health:'#4ade80', Other:'#8b98a5' };
 function renderExpenses(){
@@ -3236,7 +3439,7 @@ function renderExpenses(){
     <td>${escapeHtml(d.desc)}</td>
     <td class="num">${money(d.amount)}</td>
     <td><span class="cat-chip" style="background:${CAT_COLORS[d.category]||'#8b98a5'}"></span>${escapeHtml(d.category)}</td>
-    <td>${formatDate(d.date)}</td>
+    <td>${formatDate(d.date)}${d.acct?`<div class="tiny">${escapeHtml(acctName(d.acct))}</div>`:''}</td>
     <td><button class="btn secondary" data-action="editExpense" data-id="${d.id}">Edit</button> <button class="btn danger" aria-label="Delete expense" data-action="deleteExpense" data-id="${d.id}">X</button></td>
   </tr>`).join('') : '<tr><td colspan="5" class="small">No expenses yet</td></tr>';
 
