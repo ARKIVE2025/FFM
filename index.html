@@ -1271,9 +1271,12 @@
     <div class="card">
       <h3>Member Access</h3>
       <div class="small" id="memberStatus">Optional. Sign in with Google to unlock the premium model.</div>
+      <label class="row" style="margin-top:10px;"><input type="checkbox" id="cloudSync" checked> Sync my data across devices</label>
+      <div class="small" id="cloudStatus"></div>
       <div class="toolbar" style="margin-top:10px;">
         <button class="btn" id="memberSignIn" data-action="memberSignIn">Sign in with Google</button>
         <button class="btn secondary" id="memberSignOut" data-action="memberSignOut" style="display:none">Sign out</button>
+        <button class="btn secondary" id="cloudNow" data-action="cloudNow" style="display:none">Sync now</button>
       </div>
     </div>
     <div class="card">
@@ -1630,7 +1633,9 @@ function exportable(){
   return c;
 }
 function setSaveState(ok){ const el=$('saveState'); if(el) el.textContent = ok ? 'Saved '+new Date().toLocaleTimeString([], {hour:'2-digit',minute:'2-digit'}) : 'Save failed'; }
-async function persistNow(){
+async function persistNow(opts){
+  const quiet=!!(opts&&opts.quiet);
+  if(!quiet) db.modifiedAt=Date.now();
   let ok=false;
   const full=JSON.stringify(db);
   try{ await idbSet('db',full); ok=true; }catch(e){}
@@ -1639,6 +1644,7 @@ async function persistNow(){
   try{ await opfsWrite(safe); }catch(e){}
   try{ await writeLinkedFile(safe); }catch(e){}
   setSaveState(ok);
+  if(!quiet) cloudQueue();
 }
 let saveTimer=null;
 function scheduleSave(){ clearTimeout(saveTimer); saveTimer=setTimeout(persistNow,250); }
@@ -1655,7 +1661,7 @@ async function bootDB(){
   try{ db=normalizeDB(raw?JSON.parse(raw):null); }catch(e){ db=normalizeDB(null); }
   try{ linkedHandle=(await idbGet('handle'))||null; }catch(e){}
   try{ if(navigator.storage&&navigator.storage.persist) await navigator.storage.persist(); }catch(e){}
-  if(raw && !fromIDB) persistNow();
+  if(raw && !fromIDB) persistNow({quiet:true});
 }
 
 function backupName(){ return 'ffm_backup_'+todayISO()+'.json'; }
@@ -2656,6 +2662,8 @@ function renderMember(){
   st.textContent=msg[memberState]||msg.out;
   $('memberSignIn').style.display=memberUser?'none':'';
   $('memberSignOut').style.display=memberUser?'':'none';
+  if($('cloudNow')) $('cloudNow').style.display=memberUser?'':'none';
+  const cs=$('cloudStatus'); if(cs) cs.textContent=memberUser?(cloudMsg||(db.settings.cloudSync===false?'Sync is off.':'')):'Sign in to sync across devices.';
 }
 async function fetchMemberKey(){
   memberState='checking'; renderMember();
@@ -2670,12 +2678,60 @@ async function fetchMemberKey(){
   }
   renderMember();
 }
+// ── Cloud sync (Firestore: userData/{uid}); last change wins ──
+const DEVICE_ID=(()=>{ try{ let d=localStorage.getItem('ffm_dev'); if(!d){ d=Math.random().toString(36).slice(2); localStorage.setItem('ffm_dev',d); } return d; }catch(e){ return 'x'+Math.random().toString(36).slice(2); } })();
+let cloudUnsub=null, cloudTimer=null, cloudMsg='', cloudBusy=false;
+function cloudOn(){ return !!memberUser && db.settings.cloudSync!==false; }
+function cloudSet(m){ cloudMsg=m; const el=$('cloudStatus'); if(el&&memberUser) el.textContent=m; }
+function cloudRef(fb){ return fb.firestore().collection('userData').doc(memberUser.uid); }
+function cloudQueue(){ if(!cloudOn()) return; clearTimeout(cloudTimer); cloudTimer=setTimeout(()=>cloudPush(),2500); }
+function cloudStop(){ if(cloudUnsub){ try{ cloudUnsub(); }catch(e){} cloudUnsub=null; } clearTimeout(cloudTimer); }
+function hasLocalData(){ return ['debts','income','expenses','goals','bills','accounts'].some(k=>db[k]&&db[k].length); }
+async function cloudPush(){
+  if(!cloudOn()||cloudBusy) return;
+  const c=exportable(); delete c.chat; const payload=JSON.stringify(c);
+  if(payload.length>900000){ cloudSet('Data too large to sync.'); return; }
+  cloudBusy=true;
+  try{
+    const fb=await fbInit();
+    await cloudRef(fb).set({data:payload,updatedAt:db.modifiedAt||Date.now(),device:DEVICE_ID});
+    if(!db.settings.cloudLinked){ db.settings.cloudLinked=true; persistNow({quiet:true}); }
+    cloudSet('Synced '+new Date().toLocaleTimeString([],{hour:'2-digit',minute:'2-digit'}));
+  }catch(e){ cloudSet(e&&e.code==='permission-denied'?'Cloud rules block sync. Add the userData rule in Firebase.':'Sync failed. Will retry on next change.'); }
+  cloudBusy=false;
+}
+function applyRemote(r){
+  try{
+    const nd=normalizeDB(JSON.parse(r.data)), loc=db.settings||{};
+    ['keys','models','provider','mode','autoLog','lastBackup','cloudSync','cloudLinked'].forEach(k=>{ if(loc[k]!==undefined) nd.settings[k]=loc[k]; });
+    nd.chat=db.chat; nd.modifiedAt=r.updatedAt; db=nd;
+    persistNow({quiet:true}); renderAll(); renderChat(); renderSettings();
+    cloudSet('Updated from cloud '+new Date().toLocaleTimeString([],{hour:'2-digit',minute:'2-digit'})); toast('Updated from cloud');
+  }catch(e){ cloudSet('Could not read cloud data.'); }
+}
+async function cloudStart(){
+  cloudStop(); if(!cloudOn()) return;
+  cloudSet('Syncing…');
+  try{
+    const fb=await fbInit(), ref=cloudRef(fb), snap=await ref.get(), loc=db.modifiedAt||0;
+    if(snap.exists){
+      const r=snap.data();
+      if(!db.settings.cloudLinked && hasLocalData() && r.updatedAt!==loc){
+        if(confirm('Cloud data found (saved '+new Date(r.updatedAt).toLocaleString()+').\n\nOK = use the cloud copy on this device\nCancel = replace the cloud copy with this device')) applyRemote(r); else await cloudPush();
+      } else if(r.updatedAt>loc) applyRemote(r);
+      else if(r.updatedAt<loc) await cloudPush();
+      else cloudSet('Synced');
+    } else await cloudPush();
+    if(!db.settings.cloudLinked){ db.settings.cloudLinked=true; persistNow({quiet:true}); }
+    cloudUnsub=ref.onSnapshot(sn=>{ if(!sn.exists||sn.metadata.hasPendingWrites) return; const r=sn.data(); if(r.device!==DEVICE_ID && r.updatedAt>(db.modifiedAt||0)) applyRemote(r); },()=>{});
+  }catch(e){ cloudSet(e&&e.code==='permission-denied'?'Cloud rules block sync. Add the userData rule in Firebase.':'Could not reach cloud. Check connection.'); }
+}
 function memberInit(){
   if(!fbConfigured()){ memberState='unconfigured'; renderMember(); return; }
   fbInit().then(fb=>{
     fb.auth().onAuthStateChanged(u=>{
       memberUser=u||null;
-      if(u) fetchMemberKey(); else { memberKey=null; memberState='out'; renderMember(); }
+      if(u){ fetchMemberKey(); cloudStart(); } else { cloudStop(); memberKey=null; memberState='out'; renderMember(); }
     });
   }).catch(()=>{ memberState='error'; renderMember(); });
 }
@@ -2783,6 +2839,7 @@ function renderSettings(){
   $('manualKeyBox').style.display=s.provider==='premium'?'none':'';
   renderMember();
   fillAcctSelects();
+  if($('cloudSync')) $('cloudSync').checked=s.cloudSync!==false;
   $('autoLog').checked=s.autoLog!==false;
   const ts=document.getElementById('themeSelect');
   if(ts) ts.value=s.theme||'dark';
@@ -2848,6 +2905,7 @@ document.addEventListener('DOMContentLoaded', async () => {
   initTheme();
   setSaveState(true);
   memberInit();
+  if($('cloudSync')) $('cloudSync').addEventListener('change',()=>{ db.settings.cloudSync=$('cloudSync').checked; scheduleSave(); if($('cloudSync').checked) cloudStart(); else { cloudStop(); cloudSet('Sync is off.'); } });
   if($('expCategory')) $('expCategory').addEventListener('change',()=>{ const a=(db.settings.catAcct||{})[$('expCategory').value]; if(a&&acctById(a)) $('expAcct').value=a; });
 
   document.body.addEventListener('click', (e) => {
@@ -2897,6 +2955,7 @@ document.addEventListener('DOMContentLoaded', async () => {
       case 'deleteMeal': deleteMeal(id); break;
       case 'saveSettings': saveSettings(); break;
       case 'memberSignIn': memberSignIn(); break;
+      case 'cloudNow': cloudStart(); break;
       case 'memberSignOut': memberSignOut(); break;
       case 'exportData': exportData(); break;
       case 'shareBackup': shareBackup(); break;
