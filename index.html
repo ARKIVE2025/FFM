@@ -10,9 +10,9 @@
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-<meta name="apple-mobile-web-app-title" content="FFM">
-<meta name="application-name" content="FFinanceManager">
-<meta name="description" content="Personal finance assistant with S Pen hover previews, Air Command quick actions, and Samsung Notes export.">
+<meta name="apple-mobile-web-app-title" content="Ford Finance">
+<meta name="application-name" content="Ford Finance Manager">
+<meta name="description" content="Ford Finance Manager (FFM) — luxury personal finance assistant with AI agent, debt payoff planner, budget insights and Samsung Notes export.">
 <meta name="format-detection" content="telephone=no">
 <!-- Samsung Internet enhancements -->
 <meta name="samsung-desktop-feature" content="enable">
@@ -21,7 +21,7 @@
 <link rel="apple-touch-icon" href="icon-192.png">
 <link rel="apple-touch-icon" sizes="192x192" href="icon-192.png">
 <link rel="apple-touch-icon" sizes="512x512" href="icon-512.png">
-<title>FFinanceManager FFM — V.5</title>
+<title>Ford Finance Manager (FFM) — V.6.1</title>
 <style>
 :root{
     --bg:#0b0f14; --panel:#121821; --panel2:#1a2230; --panel3:#212a3a; --border:#26313f;
@@ -71,7 +71,22 @@
     background:rgba(18,24,33,.85);backdrop-filter:blur(10px);
     position:sticky;top:0;z-index:50;
   }
+  header h1{display:flex;align-items:center;gap:10px;}
   header h1 span.brand-accent{color:var(--accent);}
+  .ffm-logo{width:38px;height:38px;border-radius:10px;background:linear-gradient(135deg,#1a2230,#0b0f14);border:1px solid rgba(167,139,250,.4);display:flex;align-items:center;justify-content:center;font-family:'Playfair Display',Georgia,serif;font-weight:700;font-size:20px;color:var(--accent);position:relative;flex:none;box-shadow:0 0 12px rgba(167,139,250,.5),0 0 24px rgba(34,211,238,.25),inset 0 0 8px rgba(167,139,250,.15);animation:ffmGlow 3s ease-in-out infinite;}
+  .ffm-logo::before{content:'';position:absolute;inset:-2px;border-radius:12px;background:linear-gradient(135deg,var(--purple),var(--accent),var(--purple));background-size:200% 200%;z-index:-1;opacity:.6;filter:blur(6px);animation:ffmShimmer 4s linear infinite;}
+  @keyframes ffmGlow{0%,100%{box-shadow:0 0 12px rgba(167,139,250,.5),0 0 24px rgba(34,211,238,.25),inset 0 0 8px rgba(167,139,250,.15);}50%{box-shadow:0 0 18px rgba(167,139,250,.7),0 0 36px rgba(34,211,238,.4),inset 0 0 12px rgba(167,139,250,.25);}}
+  @keyframes ffmShimmer{0%{background-position:0% 50%;}100%{background-position:200% 50%;}}
+  @media (prefers-reduced-motion:reduce){.ffm-logo,.ffm-logo::before{animation:none;}}
+  [data-theme="light"] .ffm-logo{background:linear-gradient(135deg,#fff,#f1f4f9);border-color:rgba(124,58,237,.4);}
+  header .brand-text{display:flex;flex-direction:column;line-height:1.05;}
+  header .brand-text .brand-name{font-size:15px;font-weight:700;letter-spacing:.3px;}
+  header .brand-text .brand-sub{font-size:9px;color:var(--muted);font-weight:500;letter-spacing:1.5px;text-transform:uppercase;margin-top:1px;}
+  .api-test-result{font-size:12px;margin-top:8px;min-height:0;}
+  .api-test-result.ok{color:var(--good);} .api-test-result.err{color:var(--bad);} .api-test-result.loading{color:var(--muted);}
+  details.legal{margin-bottom:10px;border:1px solid var(--border);border-radius:8px;padding:8px 12px;}
+  details.legal summary{cursor:pointer;font-weight:600;font-size:13px;color:var(--accent);}
+  .legal-body{margin-top:10px;line-height:1.6;}
   header .brand-badge{
     font-size:10px;color:var(--accent);background:rgba(34,211,238,.1);
     padding:2px 8px;border-radius:10px;margin-left:8px;font-weight:600;border:1px solid rgba(34,211,238,.25);
@@ -858,7 +873,14 @@
 </div>
 
 <header>
-  <h1>FF<span class="brand-accent">inanceManager</span> <span class="brand-badge">V.5</span></h1>
+  <h1>
+    <div class="ffm-logo" aria-hidden="true">F</div>
+    <span class="brand-text">
+      <span class="brand-name">Ford <span class="brand-accent">Finance</span> Manager</span>
+      <span class="brand-sub">FFM · V.6.1</span>
+    </span>
+    <span class="brand-badge">Premium</span>
+  </h1>
   <div class="header-actions">
     <span class="tiny" id="saveState"></span>
     <button class="btn secondary" id="bellBtn" data-action="openAlerts" aria-label="Alerts">🔔<span id="bellCount"></span></button>
@@ -1309,6 +1331,42 @@
       </div>
       <div class="small">Data is saved on this device automatically. Download a backup now and then. It lands in your Downloads folder.</div>
     </div>
+
+    <!-- V6.1: OWNER ADMIN PANEL -->
+    <div class="card" id="ownerPanel" style="display:none;border-color:var(--purple);">
+      <h3 style="color:var(--purple);">👑 Owner &amp; Admin Panel</h3>
+      <div class="small" style="margin-bottom:12px;color:var(--muted);">Signed in as owner (<strong id="ownerEmail"></strong>). Grant or revoke Premium access. Writes to Firestore <code>premiumUsers</code>.</div>
+      <h4>Add Premium User</h4>
+      <div class="row">
+        <div><label>User's Google email</label><input id="newPremiumEmail" type="email" placeholder="user@example.com"></div>
+        <div style="flex:none;align-self:flex-end;"><button class="btn" data-action="addPremiumUser">Grant Access</button></div>
+      </div>
+      <div id="addPremiumResult" class="api-test-result"></div>
+      <h4 style="margin-top:18px;">Current Premium Users</h4>
+      <div class="toolbar" style="margin-bottom:8px;"><button class="btn secondary" data-action="refreshPremiumList">↻ Refresh list</button></div>
+      <div id="premiumUserList" class="small">Loading…</div>
+      <h4 style="margin-top:18px;">Premium API Key (Firestore)</h4>
+      <div class="small" style="margin-bottom:8px;color:var(--muted);">Stored in <code>config/Premium.apiKey</code>. Update to rotate keys without redeploying.</div>
+      <div class="row">
+        <div><label>New API key</label><input id="newPremiumKey" type="password" placeholder="Paste new DeepSeek key"></div>
+        <div style="flex:none;align-self:flex-end;"><button class="btn" data-action="updatePremiumKey">Update Key</button></div>
+      </div>
+      <div id="updateKeyResult" class="api-test-result"></div>
+    </div>
+
+    <!-- V6.1: LEGAL -->
+    <div class="card" id="legalCard">
+      <h3>Legal &amp; Disclosures</h3>
+      <div class="small" style="color:var(--muted);margin-bottom:12px;">Ford Finance Manager (FFM) is owned and developed by <strong>mywestin1@gmail.com</strong>. By using this app you agree to the terms below.</div>
+      <details class="legal"><summary>📄 Terms of Service</summary><div class="small legal-body"><p><strong>1. Acceptance.</strong> By using Ford Finance Manager ("FFM", "the Service") you agree to these Terms. If you do not agree, do not use the Service.</p><p><strong>2. Service.</strong> FFM is a personal finance app: expense tracking, budgeting, debt payoff planning and optional AI insights, provided "as is" and "as available".</p><p><strong>3. Not Financial Advice.</strong> FFM and its AI output are informational and educational only, not financial, investment, legal or tax advice. Consult a qualified professional before making financial decisions.</p><p><strong>4. Accounts.</strong> You are responsible for the credentials used for Premium features and all activity under your account.</p><p><strong>5. Your Data.</strong> You keep all rights to your data. It is stored on your device and, if you enable cloud sync, in your private Firestore namespace. The owner does not access your personal financial data.</p><p><strong>6. Acceptable Use.</strong> No unlawful use, reverse-engineering, sharing or misuse of the Premium key, or interference with servers.</p><p><strong>7. Premium Access.</strong> Granted at the owner's discretion, non-transferable, revocable at any time without notice.</p><p><strong>8. Termination.</strong> The owner may suspend or end access at any time.</p><p><strong>9. Warranties.</strong> The Service is provided without warranties of any kind, express or implied.</p><p><strong>10. Liability.</strong> To the maximum extent permitted by law, the owner is not liable for indirect, incidental, special, consequential or punitive damages.</p><p><strong>11. Changes.</strong> Terms may change; continued use means acceptance.</p><p><strong>12. Governing Law.</strong> The laws of the owner's jurisdiction apply.</p><p style="margin-bottom:0;"><strong>Contact:</strong> mywestin1@gmail.com</p></div></details>
+      <details class="legal"><summary>🔒 Privacy Policy</summary><div class="small legal-body"><p><strong>1. Data Collected.</strong> Only the financial data you enter, plus your Google email if you sign in for Premium. No device IDs, location, browsing history or contacts.</p><p><strong>2. Storage.</strong> Data is stored on your device (IndexedDB, and Origin Private File System where supported). With cloud sync on, it is stored in your private Firestore namespace (<code>userData/{your-uid}</code>), readable only by you.</p><p><strong>3. API Keys.</strong> Keys you enter stay on your device and are excluded from backups. The shared Premium key is fetched from Firestore after sign-in and held in memory only.</p><p><strong>4. AI Providers.</strong> With AI mode on, your financial context is sent to the provider you choose (Groq, DeepSeek, OpenAI or Premium) and is governed by that provider's policy.</p><p><strong>5. Premium Whitelist.</strong> The owner keeps a list (<code>premiumUsers</code>) of approved emails with the date added.</p><p><strong>6. Cookies.</strong> FFM uses no cookies; it uses localStorage and IndexedDB on your device.</p><p><strong>7. Third Parties.</strong> Firebase (auth, Firestore), Google Calendar (optional) and AI providers, each under their own policies.</p><p><strong>8. Retention.</strong> Local data stays until you reset it or uninstall. Cloud data stays until you delete it. Whitelist entries stay until the owner removes them.</p><p><strong>9. Your Rights.</strong> Export via "Download backup", delete via "Reset all data", or ask the owner to remove you from the whitelist.</p><p><strong>10. Children.</strong> Not intended for users under 18.</p><p><strong>11. Security.</strong> Firebase Auth and Firestore rules restrict access. No system is perfectly secure.</p><p><strong>12. Changes.</strong> Updates are reflected in the app version.</p><p style="margin-bottom:0;"><strong>Contact:</strong> mywestin1@gmail.com</p></div></details>
+      <details class="legal"><summary>⚠️ Financial Disclaimer</summary><div class="small legal-body"><p><strong>NOT FINANCIAL ADVICE.</strong> FFM and its AI agent are not registered investment advisors, broker-dealers or financial planners under the Investment Advisers Act of 1940, the Securities Exchange Act of 1934 or state securities laws.</p><p><strong>No Fiduciary Relationship.</strong> Using FFM creates no advisory or fiduciary relationship.</p><p><strong>Educational Only.</strong> Recommendations, projections, payoff timelines and AI insights are based on the data you enter and general principles, not your full financial picture.</p><p><strong>No Guarantee.</strong> Markets, rates and circumstances change. No outcome is guaranteed.</p><p><strong>Investment Risk.</strong> Mentions of 401k, IRA, HSA or investing are general information. All investments risk loss of principal.</p><p><strong>Debt &amp; Credit.</strong> Projections assume fixed rates and consistent payments; actual results vary. FFM does not negotiate with creditors or repair credit.</p><p><strong>Tax.</strong> Tax mentions are general, not tax advice. Consult a licensed tax professional.</p><p><strong>AI Providers.</strong> Third-party models may be inaccurate, biased or outdated. Verify important decisions with a professional.</p><p style="margin-bottom:0;"><strong>Acknowledgment.</strong> You alone bear responsibility for your financial decisions.</p></div></details>
+      <details class="legal"><summary>🍪 Cookie &amp; Local Storage Policy</summary><div class="small legal-body"><p>FFM does <strong>not</strong> use cookies, tracking pixels or analytics SDKs.</p><ul style="margin:6px 0 6px 18px;"><li><strong>IndexedDB</strong> — your financial dataset and auto-save file handle.</li><li><strong>localStorage</strong> — legacy fallback copy, alert flags and a device ID for sync.</li><li><strong>Origin Private File System</strong> — offline durable copy, where supported.</li><li><strong>Cache Storage</strong> — service worker app-shell cache.</li></ul><p style="margin-bottom:0;">None of these send data to the owner or third parties. Clear them via your browser or "Reset all data".</p></div></details>
+      <details class="legal"><summary>⚖️ Compliance &amp; Accessibility</summary><div class="small legal-body"><p><strong>GDPR.</strong> Your email is processed only when you sign in for Premium, on your consent. You may request access, correction, erasure, restriction or portability from the owner.</p><p><strong>CCPA.</strong> California residents may request disclosure or deletion. FFM does not sell personal information.</p><p><strong>COPPA.</strong> Not directed to children under 13 (16 in the EU). Contact the owner to delete any child's data.</p><p><strong>Accessibility.</strong> FFM aims for WCAG 2.1 AA. Report barriers to the owner.</p><p><strong>FCRA.</strong> FFM is not a consumer reporting agency and is not affiliated with any credit bureau.</p><p><strong>GLBA.</strong> FFM is not a "financial institution"; all data is user-entered.</p><p style="margin-bottom:0;"><strong>Contact:</strong> mywestin1@gmail.com</p></div></details>
+      <details class="legal"><summary>🛡️ Security &amp; Vulnerability Disclosure</summary><div class="small legal-body"><p><strong>API Keys.</strong> Your own keys stay on your device and are sent only to the provider you chose.</p><p><strong>Premium Key.</strong> Stored in Firestore <code>config/Premium</code>. Rules allow read only for the owner and approved Premium users, and write only for the owner. It is held in memory and discarded on sign-out.</p><p><strong>Authentication.</strong> Google Sign-In (OAuth 2.0). FFM never sees your password.</p><p><strong>Cloud Sync.</strong> Encrypted in transit and at rest; only you can read your <code>userData/{uid}</code>.</p><p style="margin-bottom:0;"><strong>Reporting.</strong> Email mywestin1@gmail.com with subject "FFM Security Report". Please allow reasonable time to fix before public disclosure.</p></div></details>
+      <details class="legal"><summary>📞 Contact &amp; Support</summary><div class="small legal-body"><p><strong>Owner &amp; Developer:</strong> mywestin1@gmail.com</p><p><strong>Scope:</strong> bugs, features, account issues, Premium requests, security and accessibility.</p><p><strong>Response:</strong> best effort, typically within 48 hours.</p><p style="margin-bottom:0;"><strong>Version:</strong> Ford Finance Manager V.6.1 · <span id="legalBuildDate"></span></p></div></details>
+      <div class="tiny" style="margin-top:14px;text-align:center;">© <span id="legalYear"></span> Ford Finance Manager. All rights reserved. Owner &amp; developer: mywestin1@gmail.com. Not affiliated with Ford Motor Company.</div>
+    </div>
   </div>
 
 </main>
@@ -1536,13 +1594,16 @@ const FIREBASE_CONFIG = {
   projectId:  'ffmanager-a7075',
   appId:      '1:219021011704:web:e7cf44f9c607ea471f690d'
 };
+const OWNER_EMAIL = 'mywestin1@gmail.com';
 const PREMIUM_CONFIG = {
   name:  'Premium',
-  url:   'https://api.deepseek.com/v1/chat/completions',   // DeepSeek
+  url:   'https://api.deepseek.com/v1/chat/completions',
   model: 'deepseek-chat',
   keyCollection: 'config',
   keyDoc:        'Premium',
-  keyField:      'apiKey'
+  keyField:      'apiKey',
+  usersCollection: 'premiumUsers',
+  ownerEmail:      OWNER_EMAIL
 };
 const PROVIDERS = {
   groq:    { name:'Groq',     url:'https://api.groq.com/openai/v1/chat/completions', model:'llama-3.3-70b-versatile' },
@@ -2194,7 +2255,7 @@ ${meals.join('\n')||'(none)'}
 LUNCH STATS (4 wks): ${l.n} lunches, avg ${l.avg.toFixed(2)}, about ${l.perMonth.toFixed(2)}/month
 NOTES ABOUT USER: ${db.memory.map(m=>m.text).join(' | ')||'(none)'}`;
 }
-const AI_SYSTEM = `You are the assistant inside FFinanceManager, a personal finance app. Be warm, brief and practical. Use the DATA below for every answer; never invent numbers.
+const AI_SYSTEM = `You are the assistant inside Ford Finance Manager (FFM) V.6.1, a personal finance app. Be warm, brief and practical. Use the DATA below for every answer; never invent numbers.
 Return ONLY a JSON object: {"reply":"markdown text","actions":[...]}
 "actions" saves things the user told you. Allowed action objects:
 {"type":"add_expense","desc":"","amount":0,"category":"Housing|Food|Transport|Utilities|Entertainment|Health|Other","date":"YYYY-MM-DD"}
@@ -2251,7 +2312,7 @@ function fmtTime(ts){
 const WELCOME_EMPTY = `
   <div class="chat-empty">
     <div class="empty-icon">💰</div>
-    <h3>Welcome to your finance assistant</h3>
+    <h3>Welcome to Ford Finance Manager</h3>
     <p>Tell me what you spend, eat, or owe — I'll track it for you. Try the examples below or just type a message.</p>
     <div class="empty-chips">
       <button class="chip" data-action="chip" data-text="Spent $12 on gas" data-send="1">Spent $12 on gas</button>
@@ -2673,7 +2734,7 @@ function renderMember(){
     out:'Optional. Sign in with Google to unlock the premium model.',
     checking:'Checking access…',
     ok:'Signed in as '+em+'. Premium unlocked.',
-    denied:'Signed in as '+em+', but this account is not on the approved list.',
+    denied:'Signed in as '+em+', but this account has not been granted Premium access. Email mywestin1@gmail.com to request access.',
     unconfigured:'Not set up yet (Firebase details missing).',
     error:'Could not check access. Check your connection and try again.'
   };
@@ -2682,11 +2743,18 @@ function renderMember(){
   $('memberSignOut').style.display=memberUser?'':'none';
   if($('cloudNow')) $('cloudNow').style.display=memberUser?'':'none';
   const cs=$('cloudStatus'); if(cs) cs.textContent=memberUser?(cloudMsg||(db.settings.cloudSync===false?'Sync is off.':'')):'Sign in to sync across devices.';
+  renderOwnerPanel();
 }
 async function fetchMemberKey(){
   memberState='checking'; renderMember();
   try{
     const fb=await fbInit();
+    const email=(memberUser&&memberUser.email)?String(memberUser.email).toLowerCase().trim():'';
+    let ok=isOwnerSignedIn();
+    if(!ok&&email){
+      try{ ok=(await fb.firestore().collection(PREMIUM_CONFIG.usersCollection).doc(email).get()).exists; }catch(e){ ok=false; }
+    }
+    if(!ok){ memberKey=null; memberState='denied'; renderMember(); return; }
     const snap=await fb.firestore().collection(PREMIUM_CONFIG.keyCollection).doc(PREMIUM_CONFIG.keyDoc).get();
     const k=snap.exists?snap.data()[PREMIUM_CONFIG.keyField]:null;
     if(k){ memberKey=k; memberState='ok'; } else { memberKey=null; memberState='denied'; }
@@ -2695,6 +2763,75 @@ async function fetchMemberKey(){
     memberState=(e&&e.code==='permission-denied')?'denied':'error';
   }
   renderMember();
+}
+
+// V6.1 — OWNER ADMIN PANEL (visible only to OWNER_EMAIL)
+function isOwnerSignedIn(){
+  return !!(memberUser&&memberUser.email)&&String(memberUser.email).toLowerCase().trim()===String(PREMIUM_CONFIG.ownerEmail).toLowerCase().trim();
+}
+function renderOwnerPanel(){
+  const panel=$('ownerPanel'); if(!panel) return;
+  const show=isOwnerSignedIn();
+  panel.style.display=show?'':'none';
+  const list=$('premiumUserList');
+  if(show){
+    const emEl=$('ownerEmail'); if(emEl) emEl.textContent=memberUser.email;
+    if(list&&!list.dataset.loaded) loadPremiumUserList();
+  }else if(list){ delete list.dataset.loaded; list.textContent=''; }
+}
+async function loadPremiumUserList(){
+  const list=$('premiumUserList'); if(!list) return;
+  list.textContent='Loading…'; list.dataset.loaded='1';
+  try{
+    const fb=await fbInit();
+    const snap=await fb.firestore().collection(PREMIUM_CONFIG.usersCollection).get();
+    if(snap.empty){ list.innerHTML='<div class="small" style="color:var(--muted);">No premium users yet. Add one above.</div>'; return; }
+    const me=String(memberUser.email).toLowerCase().trim();
+    const docs=snap.docs.slice().sort((a,b)=>{ const x=a.data().addedAt,y=b.data().addedAt; return (y&&y.toMillis?y.toMillis():0)-(x&&x.toMillis?x.toMillis():0); });
+    list.innerHTML=docs.map(doc=>{
+      const d=doc.data(), email=doc.id;
+      const at=d.addedAt&&d.addedAt.toDate?d.addedAt.toDate().toLocaleDateString():'—';
+      return '<div class="list-row"><span><strong>'+escapeHtml(email)+'</strong>'+(email===me?' <span class="badge purple">you</span>':'')+'<div class="tiny">Added '+escapeHtml(at)+' by '+escapeHtml(d.addedBy||'—')+'</div></span><span class="btns"><button class="btn danger" data-action="removePremiumUser" data-email="'+escapeHtml(email)+'" title="Revoke Premium access">Revoke</button></span></div>';
+    }).join('');
+  }catch(e){
+    list.innerHTML='<div class="small" style="color:var(--bad);">Could not load premium users: '+escapeHtml(e.message||e.code||String(e))+'<br>Check Firestore rules.</div>';
+  }
+}
+async function addPremiumUser(){
+  const inp=$('newPremiumEmail'), res=$('addPremiumResult');
+  const email=(inp.value||'').trim().toLowerCase();
+  if(!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)){ res.className='api-test-result err'; res.textContent='Enter a valid email address.'; return; }
+  if(!isOwnerSignedIn()){ res.className='api-test-result err'; res.textContent='Only the owner can add premium users.'; return; }
+  res.className='api-test-result loading'; res.textContent='Granting Premium access to '+email+'…';
+  try{
+    const fb=await fbInit();
+    await fb.firestore().collection(PREMIUM_CONFIG.usersCollection).doc(email).set({email,addedAt:fb.firestore.FieldValue.serverTimestamp(),addedBy:memberUser.email});
+    res.className='api-test-result ok'; res.textContent='✓ '+email+' now has Premium access.';
+    inp.value=''; loadPremiumUserList(); toast('Premium access granted');
+  }catch(e){ res.className='api-test-result err'; res.textContent='✗ '+(e.message||e.code||String(e))+'. Check Firestore rules.'; }
+}
+async function removePremiumUser(email){
+  if(!email) return;
+  if(!isOwnerSignedIn()){ toast('Only the owner can remove premium users'); return; }
+  if(!confirm('Revoke Premium access for '+email+'?')) return;
+  try{
+    const fb=await fbInit();
+    await fb.firestore().collection(PREMIUM_CONFIG.usersCollection).doc(String(email).toLowerCase().trim()).delete();
+    toast('Premium access revoked'); loadPremiumUserList();
+  }catch(e){ toast('Could not revoke: '+(e.message||e.code||String(e))); }
+}
+async function updatePremiumKey(){
+  const inp=$('newPremiumKey'), res=$('updateKeyResult');
+  const key=String(inp.value||'').replace(/[\s"'\u200B-\u200D\uFEFF]/g,'');
+  if(key.length<10){ res.className='api-test-result err'; res.textContent='Paste a valid API key.'; return; }
+  if(!isOwnerSignedIn()){ res.className='api-test-result err'; res.textContent='Only the owner can update the Premium key.'; return; }
+  res.className='api-test-result loading'; res.textContent='Updating Premium key…';
+  try{
+    const fb=await fbInit();
+    await fb.firestore().collection(PREMIUM_CONFIG.keyCollection).doc(PREMIUM_CONFIG.keyDoc).set({[PREMIUM_CONFIG.keyField]:key,updatedAt:fb.firestore.FieldValue.serverTimestamp(),updatedBy:memberUser.email},{merge:true});
+    res.className='api-test-result ok'; res.textContent='✓ Premium key updated. Users pick it up on next sign-in.';
+    inp.value=''; if(memberKey) memberKey=key; toast('Premium key updated');
+  }catch(e){ res.className='api-test-result err'; res.textContent='✗ '+(e.message||e.code||String(e))+'. Check Firestore rules.'; }
 }
 // ══════════════════════════════════════════════════════════════
 // ALERTS (overspending, bills, cash, inactivity) + CALENDAR EXPORT
@@ -2746,8 +2883,8 @@ function renderAlerts(list){
 async function notifyAlert(a){
   if(!('Notification' in window)||Notification.permission!=='granted') return;
   const opts={body:a.text,tag:'ffm_'+a.id,icon:'icon-192.png',badge:'icon-192.png',data:{url:'./index.html?tab='+a.tab}};
-  try{ const reg=navigator.serviceWorker&&await navigator.serviceWorker.getRegistration(); if(reg){ await reg.showNotification('FFinanceManager — '+a.title,opts); return; } }catch(e){}
-  try{ new Notification('FFinanceManager — '+a.title,opts); }catch(e){}
+  try{ const reg=navigator.serviceWorker&&await navigator.serviceWorker.getRegistration(); if(reg){ await reg.showNotification('Ford Finance Manager — '+a.title,opts); return; } }catch(e){}
+  try{ new Notification('Ford Finance Manager — '+a.title,opts); }catch(e){}
 }
 function runAlerts(){
   let list=[]; try{ list=computeAlerts(); }catch(e){ return; }
@@ -2989,6 +3126,8 @@ function renderSettings(){
   $('aiModel').placeholder=PROVIDERS[s.provider].model;
   $('manualKeyBox').style.display=s.provider==='premium'?'none':'';
   renderMember();
+  const ly=$('legalYear'); if(ly) ly.textContent=new Date().getFullYear();
+  const lb=$('legalBuildDate'); if(lb) lb.textContent=new Date().toLocaleDateString();
   fillAcctSelects();
   if($('cloudSync')) $('cloudSync').checked=s.cloudSync!==false;
   renderAlertSettings();
@@ -3108,6 +3247,10 @@ document.addEventListener('DOMContentLoaded', async () => {
       case 'deleteMeal': deleteMeal(id); break;
       case 'saveSettings': saveSettings(); break;
       case 'memberSignIn': memberSignIn(); break;
+      case 'addPremiumUser': addPremiumUser(); break;
+      case 'removePremiumUser': removePremiumUser(el.dataset.email); break;
+      case 'refreshPremiumList': loadPremiumUserList(); break;
+      case 'updatePremiumKey': updatePremiumKey(); break;
       case 'cloudNow': cloudStart(); break;
       case 'openAlerts': openAlerts(); break;
       case 'dismissAlert': dismissAlert(el.dataset.id); break;
@@ -3382,7 +3525,7 @@ function handleAirCommand(action){
 function buildSummaryText(){
   const t = getTotals();
   const lines = [];
-  lines.push('FFinanceManager — Summary');
+  lines.push('Ford Finance Manager (FFM) — Summary');
   lines.push('Generated: ' + new Date().toLocaleString());
   lines.push('');
   lines.push('MONTHLY OVERVIEW');
@@ -3424,9 +3567,9 @@ async function shareToSamsungNotes(){
     try{
       const file = new File([text], 'ffm_summary.txt', {type:'text/plain'});
       if(navigator.canShare && navigator.canShare({files:[file]})){
-        await navigator.share({ files:[file], title:'FFinanceManager Summary', text });
+        await navigator.share({ files:[file], title:'Ford Finance Manager Summary', text });
       } else {
-        await navigator.share({ title:'FFinanceManager Summary', text });
+        await navigator.share({ title:'Ford Finance Manager Summary', text });
       }
       toast('Shared — pick Samsung Notes from the share sheet');
       return;
@@ -3527,7 +3670,7 @@ function initBillReminderNotifications(){
           });
         }catch(e){}
       } else if(Notification.permission === 'granted'){
-        new Notification('FFinanceManager — Bill Due Soon', {
+        new Notification('Ford Finance Manager — Bill Due Soon', {
           body: b.name + ' — ' + money(num(b.amount)) + ' · due ' + formatDate(b.due),
           icon: 'icon-192.png',
           badge: 'icon-192.png',
