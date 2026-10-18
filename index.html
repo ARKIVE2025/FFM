@@ -861,6 +861,7 @@
   <h1>FF<span class="brand-accent">inanceManager</span> <span class="brand-badge">V.5</span></h1>
   <div class="header-actions">
     <span class="tiny" id="saveState"></span>
+    <button class="btn secondary" id="bellBtn" data-action="openAlerts" aria-label="Alerts">🔔<span id="bellCount"></span></button>
     <div class="theme-toggle" role="group" aria-label="Color mode">
       <button type="button" class="seg" data-theme-seg="light" aria-label="Light mode" title="Light mode">☀</button>
       <button type="button" class="seg" data-theme-seg="dark" aria-label="Dark mode" title="Dark mode">☾</button>
@@ -930,6 +931,7 @@
 
   <!-- TODAY -->
   <div class="tab" id="today">
+    <div id="alertsBox"></div>
     <div id="backupBanner"></div>
     <div id="filePermBanner" class="card compact" style="display:none;border-color:var(--accent2);">
       <div class="row">
@@ -1267,6 +1269,22 @@
       <label class="row"><input type="checkbox" id="autoLog" style="width:auto;flex:none;"> <span style="text-transform:none;letter-spacing:0;font-size:13px;color:var(--text);">Save spending, meals and income without asking (Undo available)</span></label>
       <div class="small" style="margin:8px 0;">Your key stays on this device and is never included in backups. In AI mode your data is sent to the provider you choose.</div>
       <button class="btn" data-action="saveSettings">Save</button>
+    </div>
+    <div class="card">
+      <h3>Alerts &amp; Calendar</h3>
+      <label class="row"><input type="checkbox" id="alertsOn" checked> Spending, bill and cash alerts</label>
+      <label class="row"><input type="checkbox" id="inactOn" checked> Remind me if I haven't logged anything for</label>
+      <div class="row"><div><input id="inactHrs" type="number" min="1" step="1" value="4"></div><div class="small">hours (default 4)</div></div>
+      <div class="toolbar" style="margin-top:10px;"><button class="btn" data-action="enableNotif">Enable notifications</button></div>
+      <div class="small" id="notifStatus"></div>
+      <label style="margin-top:12px;">Monthly category limits (optional)</label>
+      <div class="row"><div><select id="limCat"></select></div><div><input id="limAmt" type="number" inputmode="decimal" placeholder="Amount"></div></div>
+      <button class="btn secondary" data-action="addLimit">Set limit</button>
+      <div id="limList"></div>
+      <label style="margin-top:12px;">Calendar</label>
+      <div class="toolbar"><button class="btn secondary" data-action="exportICS">Download calendar file</button><button class="btn" data-action="gcalSync">Sync to Google Calendar</button></div>
+      <div class="small" id="gcalStatus"></div>
+      <div class="tiny">Bills, paydays and notes get a reminder at 9am the day before. Open the downloaded file on your phone to add them to Apple or Google Calendar.</div>
     </div>
     <div class="card">
       <h3>Member Access</h3>
@@ -2678,6 +2696,139 @@ async function fetchMemberKey(){
   }
   renderMember();
 }
+// ══════════════════════════════════════════════════════════════
+// ALERTS (overspending, bills, cash, inactivity) + CALENDAR EXPORT
+// ══════════════════════════════════════════════════════════════
+let lastAlerts=[], alertTimer=null, gcalMsg='', gTok=null;
+function lsGet(k){ try{ return JSON.parse(localStorage.getItem(k))||{}; }catch(e){ return {}; } }
+function lsSet(k,v){ try{ localStorage.setItem(k,JSON.stringify(v)); }catch(e){} }
+function alertsCfg(){ const s=db.settings; return {on:s.alertsOn!==false, inactOn:s.inactOn!==false, hrs:Math.max(1,num(s.inactHrs)||4), limits:s.catLimits||{}}; }
+function computeAlerts(){
+  const c=alertsCfg(); if(!c.on) return [];
+  const out=[], t=todayISO(), mk=t.slice(0,7), push=(id,level,title,text,tab)=>out.push({id,level,title,text,tab:tab||'today'});
+  const isBill=e=>/\(bill\)$/.test(e.desc||'');
+  if(db.accounts.length){
+    const f=buildForecast(30);
+    if(f.firstNeg) push('neg:'+mk,'bad','Cash may run out','Projected to go negative around '+formatDate(f.firstNeg)+' (low '+money(f.low.bal)+').','calendar');
+    const bm={}; buildForecast(3).series.forEach(x=>{ bm[x.date]=x.bal; });
+    calEvents(t,addDaysISO(t,3)).filter(e=>e.type==='bill').forEach(e=>{
+      const b=db.bills.find(x=>x.id===e.id), a=b&&b.acct?acctById(b.acct):null, amt=-e.amt;
+      if(bm[e.date]<0) push('bill:'+e.id+':'+e.date,'bad',e.label+' due '+dueLabel(e.date),'Projected balance that day is '+money(bm[e.date])+'.','bills');
+      else if(a&&num(a.balance)<amt) push('billacct:'+e.id+':'+e.date,'warn',e.label+' due '+dueLabel(e.date),a.name+' has '+money(a.balance)+' but '+money(amt)+' is due. Move money there.','bills');
+    });
+  }
+  const mtd={}, mtdNB={}, now=new Date();
+  db.expenses.forEach(e=>{ if(!inCurMonth(e.date)) return; const k=e.category||'Other'; mtd[k]=(mtd[k]||0)+num(e.amount); if(!isBill(e)) mtdNB[k]=(mtdNB[k]||0)+num(e.amount); });
+  Object.entries(c.limits).forEach(([cat,lim])=>{ lim=num(lim); const v=mtd[cat]||0; if(lim<=0) return;
+    if(v>lim) push('lim:'+cat+':'+mk+':o','bad',cat+' is over budget',money(v)+' spent of your '+money(lim)+' limit this month.','dashboard');
+    else if(v>=lim*0.8) push('lim:'+cat+':'+mk+':w','warn',cat+' is near its limit',money(v)+' of '+money(lim)+' used ('+Math.round(v/lim*100)+'%).','dashboard'); });
+  const first=db.expenses.reduce((m,e)=>e.date&&e.date<m?e.date:m,t);
+  if(daysBetween(first,t)>=60){
+    const start=isoDate(new Date(now.getFullYear(),now.getMonth()-3,1)), end=isoDate(new Date(now.getFullYear(),now.getMonth(),0)), hist={};
+    db.expenses.forEach(e=>{ if(e.date>=start&&e.date<=end&&!isBill(e)){ const k=e.category||'Other'; hist[k]=(hist[k]||0)+num(e.amount); } });
+    const day=now.getDate(), dim=new Date(now.getFullYear(),now.getMonth()+1,0).getDate();
+    Object.keys(hist).forEach(cat=>{ const exp=(hist[cat]/3)*(day/dim), cur=mtdNB[cat]||0;
+      if(day>=5&&cur>exp*1.5&&cur-exp>50&&!c.limits[cat]) push('pace:'+cat+':'+mk,'warn',cat+' spending is running high',money(cur)+' so far, about '+Math.round((cur/exp-1)*100)+'% above your usual pace.','dashboard'); });
+  }
+  const avg=avgDailySpend(), today$=sumBy(db.expenses.filter(e=>e.date===t&&!isBill(e)),e=>e.amount);
+  if(avg>0&&today$>Math.max(50,avg*2)) push('day:'+t,'warn','Big spending day',money(today$)+' today vs about '+money(avg)+' on a usual day.','dashboard');
+  const tt=getTotals(); if(tt.totInc>0&&tt.totExp>tt.totInc) push('inc:'+mk,'bad','Spending is above income',money(tt.totExp)+' spent vs '+money(tt.totInc)+' income this month.','dashboard');
+  if(c.inactOn&&db.modifiedAt){ const hrs=(Date.now()-db.modifiedAt)/3600000;
+    if(hrs>=c.hrs) push('inactive','info','Time to check in','Nothing logged for '+(hrs<48?Math.floor(hrs)+' hours':Math.floor(hrs/24)+' days')+'. Log any recent spending.','today'); }
+  return out;
+}
+function renderAlerts(list){
+  const n=list.length, b=$('bellCount'); if(b) b.textContent=n?' '+n:'';
+  const box=$('alertsBox'); if(!box) return;
+  const col={bad:'var(--bad)',warn:'var(--yellow)',info:'var(--accent)'};
+  box.innerHTML=list.map(a=>'<div class="card compact" style="border-color:'+col[a.level]+';"><strong>'+escapeHtml(a.title)+'</strong><div class="small">'+escapeHtml(a.text)+'</div><div class="toolbar" style="margin-top:8px;"><button class="btn secondary" data-action="tab" data-tab="'+a.tab+'">Open</button><button class="btn secondary" data-action="dismissAlert" data-id="'+escapeHtml(a.id)+'">Dismiss today</button></div></div>').join('');
+}
+async function notifyAlert(a){
+  if(!('Notification' in window)||Notification.permission!=='granted') return;
+  const opts={body:a.text,tag:'ffm_'+a.id,icon:'icon-192.png',badge:'icon-192.png',data:{url:'./index.html?tab='+a.tab}};
+  try{ const reg=navigator.serviceWorker&&await navigator.serviceWorker.getRegistration(); if(reg){ await reg.showNotification('FFinanceManager — '+a.title,opts); return; } }catch(e){}
+  try{ new Notification('FFinanceManager — '+a.title,opts); }catch(e){}
+}
+function runAlerts(){
+  let list=[]; try{ list=computeAlerts(); }catch(e){ return; }
+  const t=todayISO(), dis=lsGet('ffm_alert_dismiss');
+  Object.keys(dis).forEach(k=>{ if(dis[k]!==t) delete dis[k]; }); lsSet('ffm_alert_dismiss',dis);
+  lastAlerts=list.filter(a=>dis[a.id]!==t); renderAlerts(lastAlerts);
+  if(!document.hidden) return;
+  const sent=lsGet('ffm_alert_sent'), slot=Math.floor(Date.now()/(alertsCfg().hrs*3600000));
+  lastAlerts.forEach(a=>{ const key=a.id+':'+(a.id==='inactive'?slot:t); if(!sent[key]){ sent[key]=1; notifyAlert(a); } });
+  const ks=Object.keys(sent); if(ks.length>200) ks.slice(0,ks.length-200).forEach(k=>delete sent[k]); lsSet('ffm_alert_sent',sent);
+}
+function scheduleAlerts(){ clearTimeout(alertTimer); alertTimer=setTimeout(runAlerts,400); }
+function alertsInit(){
+  setTimeout(runAlerts,2500); setInterval(runAlerts,60000);
+  document.addEventListener('visibilitychange',()=>{ if(!document.hidden) runAlerts(); });
+  ['alertsOn','inactOn'].forEach(id=>{ const el=$(id); if(el) el.addEventListener('change',()=>{ db.settings[id]=el.checked; scheduleSave(); runAlerts(); }); });
+  const h=$('inactHrs'); if(h) h.addEventListener('change',()=>{ db.settings.inactHrs=Math.max(1,parseInt(h.value)||4); scheduleSave(); runAlerts(); });
+}
+function dismissAlert(id){ const d=lsGet('ffm_alert_dismiss'); d[id]=todayISO(); lsSet('ffm_alert_dismiss',d); runAlerts(); }
+function openAlerts(){ switchTab('today'); const b=$('alertsBox'); if(b&&b.scrollIntoView) b.scrollIntoView({behavior:'smooth'}); }
+function enableNotif(){
+  if(!('Notification' in window)) return toast('Notifications not supported here');
+  Notification.requestPermission().then(p=>{ renderAlertSettings(); toast(p==='granted'?'Notifications on':'Notifications not allowed'); });
+}
+function addLimit(){ const amt=num($('limAmt').value); if(amt<=0) return toast('Enter a limit amount'); db.settings.catLimits=db.settings.catLimits||{}; db.settings.catLimits[$('limCat').value]=amt; $('limAmt').value=''; scheduleSave(); renderAlertSettings(); runAlerts(); }
+function delLimit(cat){ if(db.settings.catLimits) delete db.settings.catLimits[cat]; scheduleSave(); renderAlertSettings(); runAlerts(); }
+function renderAlertSettings(){
+  if(!$('alertsOn')) return; const s=db.settings;
+  $('alertsOn').checked=s.alertsOn!==false; $('inactOn').checked=s.inactOn!==false; $('inactHrs').value=s.inactHrs||4;
+  $('notifStatus').textContent=!('Notification' in window)?'Notifications are not supported in this browser.':Notification.permission==='granted'?'Notifications are on. They appear when the app is in the background.':Notification.permission==='denied'?'Blocked. Allow notifications in your browser or phone settings.':'Notifications are off.';
+  const cur=$('limCat').value; $('limCat').innerHTML=Object.keys(CAT_COLORS).map(c=>'<option>'+c+'</option>').join(''); if(cur) $('limCat').value=cur;
+  $('limList').innerHTML=Object.entries(s.catLimits||{}).map(([c,v])=>'<div class="list-row"><span>'+escapeHtml(c)+'</span><span><strong>'+money(num(v))+'</strong>/mo</span><span class="btns"><button class="btn danger" aria-label="Remove limit" data-action="delLimit" data-cat="'+escapeHtml(c)+'">X</button></span></div>').join('')||'<div class="small">No limits set.</div>';
+  $('gcalStatus').textContent=gcalMsg;
+}
+// ── Calendar export ──
+function rrule(r){ return {weekly:'FREQ=WEEKLY',biweekly:'FREQ=WEEKLY;INTERVAL=2',monthly:'FREQ=MONTHLY',quarterly:'FREQ=MONTHLY;INTERVAL=3',yearly:'FREQ=YEARLY'}[r]||null; }
+function calItems(){
+  const out=[], t=todayISO();
+  db.bills.forEach(b=>{ if(b.due) out.push({key:'b:'+b.id,title:'Bill: '+b.name+' '+money(num(b.amount)),date:b.due,rec:b.recurring}); });
+  db.income.forEach(i=>{ if((isRecurring(i)||i.posted===false)&&i.date) out.push({key:'i:'+i.id,title:'Payday: '+i.source+' '+money(num(i.amount)),date:isRecurring(i)?i.date:(i.date<t?t:i.date),rec:isRecurring(i)?i.recurring:'none'}); });
+  db.notes.forEach(n=>{ if(n.date>=t) out.push({key:'n:'+n.id,title:(n.kind==='expense'?'Planned: ':n.kind==='income'?'Expected: ':'Note: ')+n.text+(n.amt?' '+money(num(n.amt)):''),date:n.date,rec:'none'}); });
+  return out;
+}
+function icsEsc(t){ return String(t).replace(/\\/g,'\\\\').replace(/;/g,'\\;').replace(/,/g,'\\,').replace(/\n/g,'\\n'); }
+function exportICS(){
+  const items=calItems(); if(!items.length) return toast('Nothing to export yet');
+  const stamp=new Date().toISOString().replace(/[-:]/g,'').replace(/\.\d+/,''), L=['BEGIN:VCALENDAR','VERSION:2.0','PRODID:-//FFM//Finance//EN','CALSCALE:GREGORIAN'];
+  items.forEach(it=>{ const rr=rrule(it.rec);
+    L.push('BEGIN:VEVENT','UID:'+it.key+'@ffm','DTSTAMP:'+stamp,'DTSTART;VALUE=DATE:'+it.date.replace(/-/g,''),'DTEND;VALUE=DATE:'+addDaysISO(it.date,1).replace(/-/g,''),'SUMMARY:'+icsEsc(it.title));
+    if(rr) L.push('RRULE:'+rr);
+    L.push('BEGIN:VALARM','TRIGGER:-PT15H','ACTION:DISPLAY','DESCRIPTION:'+icsEsc(it.title),'END:VALARM','END:VEVENT'); });
+  L.push('END:VCALENDAR');
+  const blob=new Blob([L.join('\r\n')],{type:'text/calendar'}), a=document.createElement('a'); a.href=URL.createObjectURL(blob); a.download='ffm_calendar.ics';
+  document.body.appendChild(a); a.click(); a.remove(); setTimeout(()=>URL.revokeObjectURL(a.href),2000); toast('Calendar file downloaded');
+}
+// ── Google Calendar sync (needs Calendar API enabled in Google Cloud) ──
+function setGcal(m){ gcalMsg=m; const el=$('gcalStatus'); if(el) el.textContent=m; }
+async function gcalAuth(){
+  const fb=await fbInit(), prov=new fb.auth.GoogleAuthProvider(); prov.addScope('https://www.googleapis.com/auth/calendar.events');
+  const cred=memberUser?await memberUser.reauthenticateWithPopup(prov):await fb.auth().signInWithPopup(prov);
+  gTok=cred&&cred.credential&&cred.credential.accessToken; if(!gTok) throw new Error('no token');
+}
+async function gfetch(method,path,body){
+  const r=await fetch('https://www.googleapis.com/calendar/v3/calendars/primary/events'+path,{method,headers:{Authorization:'Bearer '+gTok,'Content-Type':'application/json'},body:body?JSON.stringify(body):undefined});
+  if(r.status===204) return {}; if(!r.ok){ const e=new Error('gcal'); e.status=r.status; throw e; } return r.json();
+}
+async function gcalSync(){
+  setGcal('Connecting…');
+  try{
+    await gcalAuth(); const map=db.settings.gcal=db.settings.gcal||{}, items=calItems(), want=new Set(items.map(x=>x.key)); let n=0;
+    for(const it of items){
+      const rr=rrule(it.rec), body={summary:it.title,start:{date:it.date},end:{date:addDaysISO(it.date,1)},reminders:{useDefault:false,overrides:[{method:'popup',minutes:900}]}};
+      if(rr) body.recurrence=['RRULE:'+rr];
+      if(map[it.key]){ try{ await gfetch('PATCH','/'+map[it.key],body); n++; continue; }catch(e){ if(e.status!==404&&e.status!==410) throw e; } }
+      const r=await gfetch('POST','',body); map[it.key]=r.id; n++;
+    }
+    for(const k of Object.keys(map)) if(!want.has(k)){ try{ await gfetch('DELETE','/'+map[k]); }catch(e){} delete map[k]; }
+    scheduleSave(); setGcal('Synced '+n+' events to Google Calendar.');
+  }catch(e){ setGcal(e&&e.code==='auth/popup-closed-by-user'?'Cancelled.':(e&&(e.status===401||e.status===403))?'Google blocked it. Enable the Google Calendar API and the calendar scope in Google Cloud.':'Could not sync to Google Calendar.'); }
+}
+
 // ── Cloud sync (Firestore: userData/{uid}); last change wins ──
 const DEVICE_ID=(()=>{ try{ let d=localStorage.getItem('ffm_dev'); if(!d){ d=Math.random().toString(36).slice(2); localStorage.setItem('ffm_dev',d); } return d; }catch(e){ return 'x'+Math.random().toString(36).slice(2); } })();
 let cloudUnsub=null, cloudTimer=null, cloudMsg='', cloudBusy=false;
@@ -2840,6 +2991,7 @@ function renderSettings(){
   renderMember();
   fillAcctSelects();
   if($('cloudSync')) $('cloudSync').checked=s.cloudSync!==false;
+  renderAlertSettings();
   $('autoLog').checked=s.autoLog!==false;
   const ts=document.getElementById('themeSelect');
   if(ts) ts.value=s.theme||'dark';
@@ -2892,7 +3044,7 @@ function switchTab(tabId){
   window.scrollTo(0,0);
 }
 function renderAll(){
-  fillAcctSelects(); renderCalendar();
+  fillAcctSelects(); renderCalendar(); scheduleAlerts();
   renderDebts(); renderIncome(); renderExpenses(); renderGoals();
   renderDashboard(); renderSIStats(); renderInsights(); renderBills(); renderToday();
 }
@@ -2905,6 +3057,7 @@ document.addEventListener('DOMContentLoaded', async () => {
   initTheme();
   setSaveState(true);
   memberInit();
+  alertsInit();
   if($('cloudSync')) $('cloudSync').addEventListener('change',()=>{ db.settings.cloudSync=$('cloudSync').checked; scheduleSave(); if($('cloudSync').checked) cloudStart(); else { cloudStop(); cloudSet('Sync is off.'); } });
   if($('expCategory')) $('expCategory').addEventListener('change',()=>{ const a=(db.settings.catAcct||{})[$('expCategory').value]; if(a&&acctById(a)) $('expAcct').value=a; });
 
@@ -2956,6 +3109,13 @@ document.addEventListener('DOMContentLoaded', async () => {
       case 'saveSettings': saveSettings(); break;
       case 'memberSignIn': memberSignIn(); break;
       case 'cloudNow': cloudStart(); break;
+      case 'openAlerts': openAlerts(); break;
+      case 'dismissAlert': dismissAlert(el.dataset.id); break;
+      case 'enableNotif': enableNotif(); break;
+      case 'addLimit': addLimit(); break;
+      case 'delLimit': delLimit(el.dataset.cat); break;
+      case 'exportICS': exportICS(); break;
+      case 'gcalSync': gcalSync(); break;
       case 'memberSignOut': memberSignOut(); break;
       case 'exportData': exportData(); break;
       case 'shareBackup': shareBackup(); break;
