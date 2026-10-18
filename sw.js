@@ -9,7 +9,7 @@
 //  - skipWaiting + clients.claim for zero-downtime updates
 // ══════════════════════════════════════════════════════════════
 
-const VERSION = 'ffm-v5-4';
+const VERSION = 'ffm-v5-5';
 const SHELL = [
   './',
   './index.html',
