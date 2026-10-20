@@ -1135,7 +1135,9 @@
       <button class="btn secondary" id="expCancelBtn" style="display:none" data-action="cancelExpenseEdit">Cancel</button>
     </div>
     <div class="card">
-      <h3>By Category</h3>
+      <label>Month</label>
+      <select id="expMonthSel"></select>
+      <h3 style="margin-top:14px;">By Category <span id="expMonthLabel" class="small"></span></h3>
       <div id="expenseBreakdown"></div>
     </div>
     <div class="card">
@@ -1593,7 +1595,7 @@ function monthIncome(){
   db.income.forEach(i=>{ if(isRecurring(i)||i.posted===false) occurrences(i,'date',today,to).forEach(()=>out.push({amount:i.amount})); });
   return out;
 }
-function sortedExpenses(){ return [...db.expenses].sort((a,b)=>String(b.date||'').localeCompare(String(a.date||''))).slice(0,300); }
+function sortedExpenses(list){ return [...(list||db.expenses)].sort((a,b)=>String(b.date||'').localeCompare(String(a.date||''))).slice(0,300); }
 function expensesIn(from,to,cat){ return db.expenses.filter(e=>e.date&&e.date>=from&&e.date<=to&&(!cat||e.category===cat)); }
 
 // ══════════════════════════════════════════════════════════════
@@ -3273,6 +3275,7 @@ document.addEventListener('DOMContentLoaded', async () => {
   memberInit();
   alertsInit();
   if($('cloudSync')) $('cloudSync').addEventListener('change',()=>{ db.settings.cloudSync=$('cloudSync').checked; scheduleSave(); if($('cloudSync').checked) cloudStart(); else { cloudStop(); cloudSet('Sync is off.'); } });
+  if($('expMonthSel')) $('expMonthSel').addEventListener('change',()=>{ expMonthChoice=$('expMonthSel').value; renderExpenses(); });
   if($('expCategory')) $('expCategory').addEventListener('change',()=>{ const a=(db.settings.catAcct||{})[$('expCategory').value]; if(a&&acctById(a)) $('expAcct').value=a; });
 
   document.body.addEventListener('click', (e) => {
@@ -3884,19 +3887,34 @@ function cancelExpenseEdit(){ editExpenseId=null; document.getElementById('expSu
 function deleteExpense(id){ if(!confirm('Delete?')) return; const d=db.expenses.find(x=>x.id===id); if(d) bump(d.acct,num(d.amount)); db.expenses=db.expenses.filter(x=>x.id!==id); debouncedSaveDB(); renderAll(); }
 
 const CAT_COLORS = { Housing:'#60a5fa', Food:'#f472b6', Transport:'#fbbf24', Utilities:'#a78bfa', Entertainment:'#f97316', Health:'#4ade80', Insurance:'#38bdf8', 'Debt Payments':'#ef4444', Savings:'#22d3ee', Shopping:'#e879f9', 'Personal Care':'#fb7185', Subscriptions:'#818cf8', 'Kids/Family':'#facc15', Pets:'#a3e635', Travel:'#2dd4bf', 'Gifts/Donations':'#f59e0b', Other:'#8b98a5' };
+let expMonthChoice='';
+function expMonthKey(d){ return d.date?String(d.date).slice(0,7):todayISO().slice(0,7); }
+function fillExpMonthSel(){
+  const el=$('expMonthSel'); if(!el) return;
+  const cur=todayISO().slice(0,7);
+  const set=new Set(db.expenses.map(expMonthKey)); set.add(cur);
+  const months=[...set].sort().reverse();
+  if(!expMonthChoice||(expMonthChoice!=='all'&&!set.has(expMonthChoice))) expMonthChoice=cur;
+  el.innerHTML=months.map(m=>{ const d=new Date(+m.slice(0,4),+m.slice(5,7)-1,1); return `<option value="${m}">${d.toLocaleDateString(undefined,{month:'long',year:'numeric'})}${m===cur?' (this month)':''}</option>`; }).join('')+'<option value="all">All months</option>';
+  el.value=expMonthChoice;
+}
+function selectedExpenses(){ return expMonthChoice==='all'?db.expenses:db.expenses.filter(e=>expMonthKey(e)===expMonthChoice); }
 function renderExpenses(){
+  fillExpMonthSel();
   const tb=document.getElementById('expenseTable');
-  tb.innerHTML = db.expenses.length ? sortedExpenses().map(d => `<tr>
+  const shown=selectedExpenses();
+  const lbl=$('expMonthLabel'); if(lbl){ const o=$('expMonthSel').selectedOptions[0]; lbl.textContent=o?'· '+o.textContent.replace(' (this month)',''):''; }
+  tb.innerHTML = shown.length ? sortedExpenses(shown).map(d => `<tr>
     <td>${escapeHtml(d.desc)}</td>
     <td class="num">${money(d.amount)}</td>
     <td><span class="cat-chip" style="background:${CAT_COLORS[d.category]||'#8b98a5'}"></span>${escapeHtml(d.category)}</td>
     <td>${formatDate(d.date)}${d.acct?`<div class="tiny">${escapeHtml(acctName(d.acct))}</div>`:''}</td>
     <td><button class="btn secondary" data-action="editExpense" data-id="${d.id}">Edit</button> <button class="btn danger" aria-label="Delete expense" data-action="deleteExpense" data-id="${d.id}">X</button></td>
-  </tr>`).join('') : '<tr><td colspan="5" class="small">No expenses yet</td></tr>';
+  </tr>`).join('') : '<tr><td colspan="5" class="small">No expenses for this month</td></tr>';
 
   const byCat = {};
-  monthExpenses().forEach(e => { byCat[e.category] = (byCat[e.category]||0) + e.amount; });
-  const totalExp = monthExpenses().reduce((s,e)=>s+e.amount,0) || 1;
+  shown.forEach(e => { byCat[e.category] = (byCat[e.category]||0) + e.amount; });
+  const totalExp = shown.reduce((s,e)=>s+e.amount,0) || 1;
   document.getElementById('expenseBreakdown').innerHTML = Object.entries(byCat)
     .sort((a,b)=>b[1]-a[1])
     .map(([cat, amt]) => `
