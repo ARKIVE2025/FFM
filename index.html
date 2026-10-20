@@ -884,7 +884,7 @@
   </h1>
   <div class="header-actions">
     <span class="tiny" id="saveState"></span>
-    <button class="btn secondary" id="bellBtn" data-action="openAlerts" aria-label="Alerts">🔔<span id="bellCount"></span></button>
+    <button class="btn secondary" id="bellBtn" data-action="openInbox" aria-label="Daphne messages">🔔<span id="bellCount"></span></button>
     <div class="theme-toggle" role="group" aria-label="Color mode">
       <button type="button" class="seg" data-theme-seg="light" aria-label="Light mode" title="Light mode">☀</button>
       <button type="button" class="seg" data-theme-seg="dark" aria-label="Dark mode" title="Dark mode">☾</button>
@@ -1633,7 +1633,7 @@ const PROVIDERS = {
 // ══════════════════════════════════════════════════════════════
 const DB_KEY = 'fintrack_local_v1';
 const LISTS = ['debts','income','expenses','goals','bills','accounts','meals','memory','notes'];
-function defaultDB(){ return { debts:[],income:[],expenses:[],goals:[],bills:[],accounts:[],meals:[],memory:[],notes:[],log:[],chat:[],plans:[],settings:{} }; }
+function defaultDB(){ return { debts:[],income:[],expenses:[],goals:[],bills:[],accounts:[],meals:[],memory:[],notes:[],log:[],chat:[],plans:[],inbox:[],settings:{} }; }
 function normalizeDB(o){
   const d=defaultDB();
   if(o && typeof o==='object'){
@@ -2930,14 +2930,51 @@ function computeAlerts(){
   return out;
 }
 function renderAlerts(list){
-  const n=list.length, b=$('bellCount'); if(b) b.textContent=n?' '+n:'';
+  renderBell();
   const box=$('alertsBox'); if(!box) return;
   const col={bad:'var(--bad)',warn:'var(--yellow)',info:'var(--accent)'};
   box.innerHTML=list.map(a=>'<div class="card compact" style="border-color:'+col[a.level]+';"><strong>'+escapeHtml(a.title)+'</strong><div class="small">'+escapeHtml(a.text)+'</div><div class="toolbar" style="margin-top:8px;"><button class="btn secondary" data-action="tab" data-tab="'+a.tab+'">Open</button><button class="btn secondary" data-action="dismissAlert" data-id="'+escapeHtml(a.id)+'">Dismiss today</button></div></div>').join('');
 }
+function daphneSay(a){
+  const lead={bad:'I need to flag something. ',warn:'Quick heads-up. ',info:'Just checking in. '}[a.level]||'';
+  return lead+a.title+'. '+a.text;
+}
+function unreadInbox(){ return (db.inbox||[]).filter(m=>!m.read).length; }
+function renderBell(){ const b=$('bellCount'); if(!b) return; const n=unreadInbox(); b.textContent=n?' '+n:''; }
+function addInboxFromAlerts(list){
+  db.inbox=db.inbox||[];
+  const seen=lsGet('ffm_inbox_seen'), t=todayISO(); let added=0;
+  list.forEach(a=>{
+    const key=a.id==='inactive'?'inactive:'+t:a.id;
+    if(seen[key]) return; seen[key]=1;
+    db.inbox.push({id:uid(),ts:Date.now(),text:daphneSay(a),tab:a.tab||'today',read:false}); added++;
+  });
+  const ks=Object.keys(seen); if(ks.length>300) ks.slice(0,ks.length-300).forEach(k=>delete seen[k]);
+  lsSet('ffm_inbox_seen',seen);
+  if(added){ db.inbox=db.inbox.slice(-50); scheduleSave(); }
+  renderBell(); if($('inboxPanel')) renderInbox();
+}
+function renderInbox(){
+  const el=$('inboxList'); if(!el) return;
+  const items=[...(db.inbox||[])].reverse();
+  el.innerHTML=items.length?items.map(m=>'<div class="card compact" style="margin-bottom:8px;'+(m.read?'opacity:.65;':'border-color:var(--accent);')+'"><div class="small">'+escapeHtml(m.text)+'</div><div class="tiny" style="margin:4px 0;">'+new Date(m.ts).toLocaleString()+'</div><button class="btn secondary" data-action="inboxGo" data-id="'+m.id+'" data-tab="'+escapeHtml(m.tab)+'">Open</button></div>').join(''):'<div class="small">No messages from Daphne yet.</div>';
+}
+function openInbox(){
+  if(!$('inboxPanel')){
+    const d=document.createElement('div'); d.id='inboxPanel';
+    d.style.cssText='position:fixed;inset:0;z-index:9999;background:rgba(0,0,0,.55);display:flex;align-items:flex-start;justify-content:center;padding:calc(env(safe-area-inset-top,0px) + 56px) 12px 12px;';
+    d.innerHTML='<div class="card" style="width:100%;max-width:460px;max-height:80vh;overflow:auto;"><div class="row" style="align-items:center;margin-bottom:10px;"><h3 style="margin:0;">Daphne\'s messages</h3><span class="btns"><button class="btn secondary" data-action="inboxReadAll">Mark all read</button> <button class="btn secondary" data-action="closeInbox" aria-label="Close">✕</button></span></div><div id="inboxList"></div></div>';
+    d.addEventListener('click',e=>{ if(e.target===d) closeInbox(); });
+    document.body.appendChild(d);
+  }
+  renderInbox();
+}
+function closeInbox(){ const d=$('inboxPanel'); if(d) d.remove(); }
+function inboxReadAll(){ (db.inbox||[]).forEach(m=>m.read=true); scheduleSave(); renderBell(); renderInbox(); }
+function inboxGo(id,tab){ const m=(db.inbox||[]).find(x=>x.id===id); if(m){ m.read=true; scheduleSave(); renderBell(); } closeInbox(); if(tab) switchTab(tab); }
 async function notifyAlert(a){
   if(!('Notification' in window)||Notification.permission!=='granted') return;
-  const opts={body:a.text,tag:'ffm_'+a.id,icon:'icon-192.png',badge:'icon-192.png',data:{url:'./index.html?tab='+a.tab}};
+  const opts={body:a.text,tag:'ffm_'+a.id,icon:'icon-192.png',badge:'icon-192.png',data:{url:'./index.html?tab='+a.tab+'&inbox=1'}};
   try{ const reg=navigator.serviceWorker&&await navigator.serviceWorker.getRegistration(); if(reg){ await reg.showNotification('Daphne — '+a.title,opts); return; } }catch(e){}
   try{ new Notification('Daphne — '+a.title,opts); }catch(e){}
 }
@@ -2945,7 +2982,7 @@ function runAlerts(){
   let list=[]; try{ list=computeAlerts(); }catch(e){ return; }
   const t=todayISO(), dis=lsGet('ffm_alert_dismiss');
   Object.keys(dis).forEach(k=>{ if(dis[k]!==t) delete dis[k]; }); lsSet('ffm_alert_dismiss',dis);
-  lastAlerts=list.filter(a=>dis[a.id]!==t); renderAlerts(lastAlerts);
+  lastAlerts=list.filter(a=>dis[a.id]!==t); addInboxFromAlerts(lastAlerts); renderAlerts(lastAlerts);
   if(!document.hidden) return;
   const sent=lsGet('ffm_alert_sent'), slot=Math.floor(Date.now()/(alertsCfg().hrs*3600000));
   lastAlerts.forEach(a=>{ const key=a.id+':'+(a.id==='inactive'?slot:t); if(!sent[key]){ sent[key]=1; notifyAlert(a); } });
@@ -3334,6 +3371,10 @@ document.addEventListener('DOMContentLoaded', async () => {
       case 'updatePremiumKey': updatePremiumKey(); break;
       case 'cloudNow': cloudStart(); break;
       case 'openAlerts': openAlerts(); break;
+      case 'openInbox': openInbox(); break;
+      case 'closeInbox': closeInbox(); break;
+      case 'inboxReadAll': inboxReadAll(); break;
+      case 'inboxGo': inboxGo(id, el.dataset.tab); break;
       case 'dismissAlert': dismissAlert(el.dataset.id); break;
       case 'enableNotif': enableNotif(); break;
       case 'addLimit': addLimit(); break;
@@ -3703,6 +3744,7 @@ function processLaunchParams(){
       const valid = ['assistant','today','dashboard','expenses','bills','income','debts','goals','snowball','insights','settings'];
       if(valid.includes(tab)) switchTab(tab);
     }
+    if(params.get('inbox')) openInbox();
     if(action === 'exportData') exportData();
     if(action === 'quick_expense'){
       switchTab('assistant');
@@ -3777,6 +3819,7 @@ async function handleSWMessage(event){
     const url = new URL(msg.url, location.href);
     const params = url.searchParams;
     if(params.get('tab')) switchTab(params.get('tab'));
+    if(params.get('inbox')) openInbox();
   }
   if(msg.type === 'SYNC_PENDING'){
     // Background sync fired — retry any pending operations
