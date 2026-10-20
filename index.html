@@ -1804,16 +1804,25 @@ function resetData(){
 // ══════════════════════════════════════════════════════════════
 // V5 — TOTALS (month-aware so daily logs don't pile up)
 // ══════════════════════════════════════════════════════════════
+function billMatchesDebt(b){
+  const n=String(b.name||'').toLowerCase().trim(); if(n.length<3) return false;
+  return db.debts.some(d=>{ const x=String(d.name||'').toLowerCase().trim(); return x.length>=3 && (x.includes(n)||n.includes(x)); });
+}
+function billsDueThisMonth(){
+  const today=todayISO(), to=isoDate(new Date(new Date().getFullYear(),new Date().getMonth()+1,0));
+  return db.bills.filter(b=>!billMatchesDebt(b)).reduce((sum,b)=>sum+num(b.amount)*occurrences(b,'due',today,to).length,0);
+}
 function getTotals(){
   const totDebt = db.debts.reduce((s,d)=>s+num(d.balance),0);
   const totInc = monthIncome().reduce((s,d)=>s+num(d.amount),0);
   const totExp = monthExpenses().reduce((s,d)=>s+num(d.amount),0);
   const minDebt = db.debts.reduce((s,d)=>s+num(d.min),0);
   const net = totInc - totExp - totDebt;
-  const disposable = totInc - totExp - minDebt;
+  const billsDue = billsDueThisMonth();
+  const disposable = totInc - totExp - billsDue - minDebt;
   const dti = totInc > 0 ? (minDebt / totInc * 100) : 0;
   const idr = totInc > 0 ? (totDebt / totInc) : 0;
-  return { totDebt, totInc, totExp, minDebt, net, disposable, dti, idr };
+  return { totDebt, totInc, totExp, billsDue, minDebt, net, disposable, dti, idr };
 }
 
 // ══════════════════════════════════════════════════════════════
@@ -2283,7 +2292,7 @@ function buildContext(q){
   const meals=db.meals.filter(m=>m.date>=from30).sort((a,b)=>b.date.localeCompare(a.date)).slice(0,40).map(m=>`${m.date} ${m.meal}: ${m.text} ${m.cost==null?'(no cost yet)':num(m.cost)}`);
   const l=mealStats('lunch');
   return `TODAY: ${today} (${DAYNAMES[new Date().getDay()]})
-THIS MONTH: income ${t.totInc}, expenses ${t.totExp}, minimum debt payments ${t.minDebt}, disposable ${t.disposable}
+THIS MONTH: income ${t.totInc}, expenses ${t.totExp}, bills still due this month ${t.billsDue}, minimum debt payments ${t.minDebt}, disposable ${t.disposable}
 ACCOUNTS: ${JSON.stringify(db.accounts.map(a=>({name:a.name,balance:a.balance})))}
 FORECAST 30 DAYS: ${(()=>{ const f=buildForecast(30); return 'ends '+f.end.toFixed(2)+', lowest '+f.low.bal.toFixed(2)+' on '+f.low.date+', expected income '+f.inc.toFixed(2)+', bills+spending '+f.out.toFixed(2); })()}
 BILLS: ${JSON.stringify(db.bills.map(b=>({name:b.name,amount:b.amount,due:b.due,repeats:b.recurring})))}
@@ -4110,7 +4119,7 @@ function calcSnowball(){
   const method = document.getElementById('payoffMethod').value;
   const extra = parseFloat(document.getElementById('extraPayment').value)||0;
   const t = getTotals();
-  const surplus = t.totInc - t.totExp + extra;
+  const surplus = t.totInc - t.totExp - t.billsDue + extra;
   const minTotal = db.debts.reduce((s,d)=>s+d.min,0);
 
   // Handle insufficient funds
@@ -4169,12 +4178,14 @@ function calcSnowball(){
         d.balance -= pay;
         currentSurplus -= pay;
         monthRecord.payments.push({name:d.name, amount:pay, extra:true});
-        if(d.balance <= 0.005){
-          const orig = originalDebts.find(o=>o.name===d.name);
-          payoffEvents.push({name:d.name, month, originalBalance:orig.originalBalance, apr:orig.apr});
-        }
       }
     }
+    debts.forEach(d => {
+      if(d.balance <= 0.005 && !payoffEvents.find(e=>e.name===d.name)){
+        const orig = originalDebts.find(o=>o.name===d.name);
+        payoffEvents.push({name:d.name, month, originalBalance:orig.originalBalance, apr:orig.apr});
+      }
+    });
     monthlyBreakdown.push(monthRecord);
   }
 
@@ -4407,7 +4418,7 @@ function renderPayoffTimeline(originalDebts, payoffEvents, totalMonths, method){
   if(method==='snowball') debts.sort((a,b)=>a.balance-b.balance); else debts.sort((a,b)=>b.apr-a.apr);
   const extra = parseFloat(document.getElementById('extraPayment').value)||0;
   const t = getTotals();
-  const surplus = t.totInc - t.totExp + extra;
+  const surplus = t.totInc - t.totExp - t.billsDue + extra;
   const series = debts.map(d => ({name:d.name, color:colors[debts.indexOf(d) % colors.length], points:[d.balance]}));
   // Simulate
   let work = debts.map(d => ({...d}));
@@ -4689,8 +4700,9 @@ async function getAIPlan(){
 User's data:
 - Monthly income: ${money(t.totInc)}
 - Monthly expenses: ${money(t.totExp)}
-- Disposable income (after expenses + minimums): ${money(t.disposable)}
-- Debts: ${JSON.stringify(db.debts)}
+- Bills still due this month: ${money(t.billsDue)}
+- Disposable income (after expenses, bills and minimums): ${money(t.disposable)}
+- Debts in payoff order (use this order exactly, do not re-sort): ${JSON.stringify(db.debts.slice().sort((a,b)=>method==='snowball'?num(a.balance)-num(b.balance):num(b.apr)-num(a.apr)))}
 - Selected method: ${method}
 
 Format your response as **Markdown** with these exact sections:
@@ -4720,7 +4732,8 @@ User's data:
 - Monthly income: ${money(t.totInc)}
 - Monthly expenses: ${money(t.totExp)}
 - Minimum debt payments: ${money(t.minDebt)}
-- Disposable income: ${money(t.disposable)}
+- Bills still due this month: ${money(t.billsDue)}
+- Disposable income (after bills and minimums): ${money(t.disposable)}
 - Goals: ${JSON.stringify(db.goals)}
 
 Recommend a budget split (needs/wants/debt/savings) tailored to their actual numbers. If their minimum debt payments exceed the standard 20% bucket, recommend a corrective split.
