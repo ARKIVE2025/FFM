@@ -1620,7 +1620,7 @@ const PREMIUM_CONFIG = {
   ownerEmail:      OWNER_EMAIL
 };
 const PROVIDERS = {
-  groq:    { name:'Groq',     url:'https://api.groq.com/openai/v1/chat/completions', model:'llama-3.3-70b-versatile' },
+  groq:    { name:'Groq',     url:'https://api.groq.com/openai/v1/chat/completions', model:'openai/gpt-oss-120b' },
   deepseek:{ name:'DeepSeek', url:'https://api.deepseek.com/v1/chat/completions',    model:'deepseek-chat' },
   openai:  { name:'OpenAI',   url:'https://api.openai.com/v1/chat/completions',      model:'gpt-4o-mini' },
   premium: { name:PREMIUM_CONFIG.name, url:PREMIUM_CONFIG.url, model:PREMIUM_CONFIG.model }
@@ -1650,6 +1650,7 @@ function normalizeDB(o){
   if(!s.fin2){ s.fin2=true; const t=todayISO();
     d.income.forEach(i=>{ if(isRecurring(i)){ i.day=i.day||(i.date?parseDate(i.date).getDate():1); if(!i.date) i.date=t; let g=0; while(i.date<t&&g++<600){ const n=stepDate(i,i.date); if(!n) break; i.date=n; } } }); }
   s.catAcct=s.catAcct||{};
+  if(/^llama-3\.(3-70b-versatile|1-8b-instant)$/.test((s.models||{}).groq||'')) delete s.models.groq;
   return d;
 }
 let db = defaultDB();
@@ -2240,7 +2241,8 @@ async function callAI(prompt, systemPrompt, maxTokens = 800, jsonMode = false, h
   const model=(s.models&&s.models[s.provider])||p.model;
   const body={ model, messages:[{role:'system',content:systemPrompt},...history,{role:'user',content:prompt}] };
   if(s.provider==='openai' && /^(o\d|gpt-5)/.test(model)) body.max_completion_tokens=Math.max(maxTokens,2000);
-  else { body.max_tokens=maxTokens; body.temperature=0.2; }
+  else { body.max_tokens=(s.provider==='groq')?Math.max(maxTokens,1500):maxTokens; body.temperature=0.2; }
+  if(s.provider==='groq' && /gpt-oss/.test(model)) body.reasoning_effort='low';
   if(jsonMode) body.response_format={type:'json_object'};
 
   // Abort after 35s so a stuck provider never hangs the UI
@@ -3201,7 +3203,7 @@ async function testKey(){
   const prov=PROVIDERS[p]; const model=$('aiModel').value.trim()||prov.model;
   out.textContent='Testing…';
   try{
-    const r=await fetch(prov.url,{method:'POST',headers:{'Content-Type':'application/json','Authorization':'Bearer '+k},body:JSON.stringify({model,messages:[{role:'user',content:'Say OK'}],max_tokens:5})});
+    const r=await fetch(prov.url,{method:'POST',headers:{'Content-Type':'application/json','Authorization':'Bearer '+k},body:JSON.stringify(Object.assign({model,messages:[{role:'user',content:'Say OK'}],max_tokens:50},(p==='groq'&&/gpt-oss/.test(model))?{reasoning_effort:'low'}:{}))});
     if(r.ok){ out.textContent='✓ '+prov.name+' key works ('+model+').'; return; }
     let t=''; try{ t=(await r.text()).slice(0,200); }catch(e){}
     out.textContent='✗ '+apiErrorText(prov.name,r.status,t);
