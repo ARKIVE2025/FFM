@@ -10,9 +10,9 @@
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-<meta name="apple-mobile-web-app-title" content="Ford Finance">
-<meta name="application-name" content="Ford Finance Manager">
-<meta name="description" content="Ford Finance Manager (FFM) — luxury personal finance assistant with AI agent, debt payoff planner, budget insights and Samsung Notes export.">
+<meta name="apple-mobile-web-app-title" content="Daphne">
+<meta name="application-name" content="Daphne">
+<meta name="description" content="Daphne — luxury personal financial tool with an AI agent, debt payoff planner, budget insights and Samsung Notes export.">
 <meta name="format-detection" content="telephone=no">
 <!-- Samsung Internet enhancements -->
 <meta name="samsung-desktop-feature" content="enable">
@@ -21,8 +21,9 @@
 <link rel="apple-touch-icon" href="icon-192.png">
 <link rel="apple-touch-icon" sizes="192x192" href="icon-192.png">
 <link rel="apple-touch-icon" sizes="512x512" href="icon-512.png">
-<title>Ford Finance Manager (FFM) — V.6.1</title>
+<title>Daphne — Financial Tool V.6.1</title>
 <style>
+  .ffm-logo-img{width:38px;height:38px;border-radius:50%;display:block;flex:none;}
 :root{
     --bg:#0b0f14; --panel:#121821; --panel2:#1a2230; --panel3:#212a3a; --border:#26313f;
     --text:#e6edf3; --muted:#8b98a5; --faint:#5a6675;
@@ -874,10 +875,10 @@
 
 <header>
   <h1>
-    <div class="ffm-logo" aria-hidden="true">F</div>
+    <img class="ffm-logo-img" src="data:image/png;base64,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" alt="Daphne" width="38" height="38">
     <span class="brand-text">
-      <span class="brand-name">Ford <span class="brand-accent">Finance</span> Manager</span>
-      <span class="brand-sub">FFM · V.6.1</span>
+      <span class="brand-name"><span class="brand-accent">Daphne</span></span>
+      <span class="brand-sub">Financial Tool · V.6.1</span>
     </span>
     <span class="brand-badge">Premium</span>
   </h1>
@@ -896,7 +897,7 @@
 </header>
 
 <nav id="tabs">
-  <button data-tab="assistant" data-action="tab" class="active agent-tab">Assistant</button>
+  <button data-tab="assistant" data-action="tab" class="active agent-tab">Daphne</button>
   <button data-tab="today" data-action="tab">Today</button>
   <button data-tab="dashboard" data-action="tab">Dashboard</button>
   <button data-tab="expenses" data-action="tab">Expenses</button>
@@ -918,7 +919,7 @@
   <div class="tab active" id="assistant">
     <div class="card">
       <div class="card-header">
-        <h3>Assistant</h3>
+        <h3>Daphne</h3>
         <span class="badge purple" id="modeBadge">Offline</span>
       </div>
       <div class="chips" id="chips">
@@ -1125,10 +1126,7 @@
       </div>
       <div class="row">
         <div><label>Category</label>
-          <select id="expCategory">
-            <option>Housing</option><option>Food</option><option>Transport</option>
-            <option>Utilities</option><option>Entertainment</option><option>Health</option><option>Other</option>
-          </select>
+          <select id="expCategory"></select>
         </div>
         <div><label>Date</label><input id="expDate" type="date"></div>
       </div>
@@ -1267,7 +1265,7 @@
       <div class="small" style="margin:8px 0;">Choose between dark, light, or auto (matches your device's setting). Your preference is saved on this device.</div>
     </div>
     <div class="card">
-      <h3>Assistant</h3>
+      <h3>Daphne</h3>
       <label>Mode</label>
       <select id="aiMode">
         <option value="rules">Rule-based (offline, no key)</option>
@@ -1286,11 +1284,21 @@
       </div>
       <label>Model (optional)</label>
       <input id="aiModel" placeholder="Default">
+      <div class="toolbar" style="margin-top:8px;"><button class="btn secondary" data-action="testKey">Test key</button></div>
+      <div id="keyTestResult" class="small" style="margin:6px 0;"></div>
+      <label>How should Daphne talk?</label>
+      <textarea id="aiStyle" rows="3" maxlength="300" placeholder="Type it your way, e.g. Short and blunt. Call me Boss. No emojis."></textarea>
       <label>Default account (used when none is chosen)</label>
       <select id="defAcct"></select>
       <label class="row"><input type="checkbox" id="autoLog" style="width:auto;flex:none;"> <span style="text-transform:none;letter-spacing:0;font-size:13px;color:var(--text);">Save spending, meals and income without asking (Undo available)</span></label>
       <div class="small" style="margin:8px 0;">Your key stays on this device and is never included in backups. In AI mode your data is sent to the provider you choose.</div>
       <button class="btn" data-action="saveSettings">Save</button>
+    </div>
+    <div class="card">
+      <h3>Daphne's memory</h3>
+      <div class="small" style="margin-bottom:8px;">Facts Daphne saved about you. Delete any you don't want kept.</div>
+      <div id="memList"></div>
+      <div class="toolbar" style="margin-top:8px;"><button class="btn secondary" data-action="clearMemory">Clear all</button></div>
     </div>
     <div class="card">
       <h3>Alerts &amp; Calendar</h3>
@@ -1357,15 +1365,15 @@
     <!-- V6.1: LEGAL -->
     <div class="card" id="legalCard">
       <h3>Legal &amp; Disclosures</h3>
-      <div class="small" style="color:var(--muted);margin-bottom:12px;">Ford Finance Manager (FFM) is owned and developed by <strong>mywestin1@gmail.com</strong>. By using this app you agree to the terms below.</div>
-      <details class="legal"><summary>📄 Terms of Service</summary><div class="small legal-body"><p><strong>1. Acceptance.</strong> By using Ford Finance Manager ("FFM", "the Service") you agree to these Terms. If you do not agree, do not use the Service.</p><p><strong>2. Service.</strong> FFM is a personal finance app: expense tracking, budgeting, debt payoff planning and optional AI insights, provided "as is" and "as available".</p><p><strong>3. Not Financial Advice.</strong> FFM and its AI output are informational and educational only, not financial, investment, legal or tax advice. Consult a qualified professional before making financial decisions.</p><p><strong>4. Accounts.</strong> You are responsible for the credentials used for Premium features and all activity under your account.</p><p><strong>5. Your Data.</strong> You keep all rights to your data. It is stored on your device and, if you enable cloud sync, in your private Firestore namespace. The owner does not access your personal financial data.</p><p><strong>6. Acceptable Use.</strong> No unlawful use, reverse-engineering, sharing or misuse of the Premium key, or interference with servers.</p><p><strong>7. Premium Access.</strong> Granted at the owner's discretion, non-transferable, revocable at any time without notice.</p><p><strong>8. Termination.</strong> The owner may suspend or end access at any time.</p><p><strong>9. Warranties.</strong> The Service is provided without warranties of any kind, express or implied.</p><p><strong>10. Liability.</strong> To the maximum extent permitted by law, the owner is not liable for indirect, incidental, special, consequential or punitive damages.</p><p><strong>11. Changes.</strong> Terms may change; continued use means acceptance.</p><p><strong>12. Governing Law.</strong> The laws of the owner's jurisdiction apply.</p><p style="margin-bottom:0;"><strong>Contact:</strong> mywestin1@gmail.com</p></div></details>
-      <details class="legal"><summary>🔒 Privacy Policy</summary><div class="small legal-body"><p><strong>1. Data Collected.</strong> Only the financial data you enter, plus your Google email if you sign in for Premium. No device IDs, location, browsing history or contacts.</p><p><strong>2. Storage.</strong> Data is stored on your device (IndexedDB, and Origin Private File System where supported). With cloud sync on, it is stored in your private Firestore namespace (<code>userData/{your-uid}</code>), readable only by you.</p><p><strong>3. API Keys.</strong> Keys you enter stay on your device and are excluded from backups. The shared Premium key is fetched from Firestore after sign-in and held in memory only.</p><p><strong>4. AI Providers.</strong> With AI mode on, your financial context is sent to the provider you choose (Groq, DeepSeek, OpenAI or Premium) and is governed by that provider's policy.</p><p><strong>5. Premium Whitelist.</strong> The owner keeps a list (<code>premiumUsers</code>) of approved emails with the date added.</p><p><strong>6. Cookies.</strong> FFM uses no cookies; it uses localStorage and IndexedDB on your device.</p><p><strong>7. Third Parties.</strong> Firebase (auth, Firestore), Google Calendar (optional) and AI providers, each under their own policies.</p><p><strong>8. Retention.</strong> Local data stays until you reset it or uninstall. Cloud data stays until you delete it. Whitelist entries stay until the owner removes them.</p><p><strong>9. Your Rights.</strong> Export via "Download backup", delete via "Reset all data", or ask the owner to remove you from the whitelist.</p><p><strong>10. Children.</strong> Not intended for users under 18.</p><p><strong>11. Security.</strong> Firebase Auth and Firestore rules restrict access. No system is perfectly secure.</p><p><strong>12. Changes.</strong> Updates are reflected in the app version.</p><p style="margin-bottom:0;"><strong>Contact:</strong> mywestin1@gmail.com</p></div></details>
-      <details class="legal"><summary>⚠️ Financial Disclaimer</summary><div class="small legal-body"><p><strong>NOT FINANCIAL ADVICE.</strong> FFM and its AI agent are not registered investment advisors, broker-dealers or financial planners under the Investment Advisers Act of 1940, the Securities Exchange Act of 1934 or state securities laws.</p><p><strong>No Fiduciary Relationship.</strong> Using FFM creates no advisory or fiduciary relationship.</p><p><strong>Educational Only.</strong> Recommendations, projections, payoff timelines and AI insights are based on the data you enter and general principles, not your full financial picture.</p><p><strong>No Guarantee.</strong> Markets, rates and circumstances change. No outcome is guaranteed.</p><p><strong>Investment Risk.</strong> Mentions of 401k, IRA, HSA or investing are general information. All investments risk loss of principal.</p><p><strong>Debt &amp; Credit.</strong> Projections assume fixed rates and consistent payments; actual results vary. FFM does not negotiate with creditors or repair credit.</p><p><strong>Tax.</strong> Tax mentions are general, not tax advice. Consult a licensed tax professional.</p><p><strong>AI Providers.</strong> Third-party models may be inaccurate, biased or outdated. Verify important decisions with a professional.</p><p style="margin-bottom:0;"><strong>Acknowledgment.</strong> You alone bear responsibility for your financial decisions.</p></div></details>
-      <details class="legal"><summary>🍪 Cookie &amp; Local Storage Policy</summary><div class="small legal-body"><p>FFM does <strong>not</strong> use cookies, tracking pixels or analytics SDKs.</p><ul style="margin:6px 0 6px 18px;"><li><strong>IndexedDB</strong> — your financial dataset and auto-save file handle.</li><li><strong>localStorage</strong> — legacy fallback copy, alert flags and a device ID for sync.</li><li><strong>Origin Private File System</strong> — offline durable copy, where supported.</li><li><strong>Cache Storage</strong> — service worker app-shell cache.</li></ul><p style="margin-bottom:0;">None of these send data to the owner or third parties. Clear them via your browser or "Reset all data".</p></div></details>
-      <details class="legal"><summary>⚖️ Compliance &amp; Accessibility</summary><div class="small legal-body"><p><strong>GDPR.</strong> Your email is processed only when you sign in for Premium, on your consent. You may request access, correction, erasure, restriction or portability from the owner.</p><p><strong>CCPA.</strong> California residents may request disclosure or deletion. FFM does not sell personal information.</p><p><strong>COPPA.</strong> Not directed to children under 13 (16 in the EU). Contact the owner to delete any child's data.</p><p><strong>Accessibility.</strong> FFM aims for WCAG 2.1 AA. Report barriers to the owner.</p><p><strong>FCRA.</strong> FFM is not a consumer reporting agency and is not affiliated with any credit bureau.</p><p><strong>GLBA.</strong> FFM is not a "financial institution"; all data is user-entered.</p><p style="margin-bottom:0;"><strong>Contact:</strong> mywestin1@gmail.com</p></div></details>
-      <details class="legal"><summary>🛡️ Security &amp; Vulnerability Disclosure</summary><div class="small legal-body"><p><strong>API Keys.</strong> Your own keys stay on your device and are sent only to the provider you chose.</p><p><strong>Premium Key.</strong> Stored in Firestore <code>config/Premium</code>. Rules allow read only for the owner and approved Premium users, and write only for the owner. It is held in memory and discarded on sign-out.</p><p><strong>Authentication.</strong> Google Sign-In (OAuth 2.0). FFM never sees your password.</p><p><strong>Cloud Sync.</strong> Encrypted in transit and at rest; only you can read your <code>userData/{uid}</code>.</p><p style="margin-bottom:0;"><strong>Reporting.</strong> Email mywestin1@gmail.com with subject "FFM Security Report". Please allow reasonable time to fix before public disclosure.</p></div></details>
-      <details class="legal"><summary>📞 Contact &amp; Support</summary><div class="small legal-body"><p><strong>Owner &amp; Developer:</strong> mywestin1@gmail.com</p><p><strong>Scope:</strong> bugs, features, account issues, Premium requests, security and accessibility.</p><p><strong>Response:</strong> best effort, typically within 48 hours.</p><p style="margin-bottom:0;"><strong>Version:</strong> Ford Finance Manager V.6.1 · <span id="legalBuildDate"></span></p></div></details>
-      <div class="tiny" style="margin-top:14px;text-align:center;">© <span id="legalYear"></span> Ford Finance Manager. All rights reserved. Owner &amp; developer: mywestin1@gmail.com. Not affiliated with Ford Motor Company.</div>
+      <div class="small" style="color:var(--muted);margin-bottom:12px;">Daphne is owned and developed by <strong>mywestin1@gmail.com</strong>. By using this app you agree to the terms below.</div>
+      <details class="legal"><summary>📄 Terms of Service</summary><div class="small legal-body"><p><strong>1. Acceptance.</strong> By using Daphne ("Daphne", "the Service") you agree to these Terms. If you do not agree, do not use the Service.</p><p><strong>2. Service.</strong> Daphne is a personal finance app: expense tracking, budgeting, debt payoff planning and optional AI insights, provided "as is" and "as available".</p><p><strong>3. Not Financial Advice.</strong> Daphne and its AI output are informational and educational only, not financial, investment, legal or tax advice. Consult a qualified professional before making financial decisions.</p><p><strong>4. Accounts.</strong> You are responsible for the credentials used for Premium features and all activity under your account.</p><p><strong>5. Your Data.</strong> You keep all rights to your data. It is stored on your device and, if you enable cloud sync, in your private Firestore namespace. The owner does not access your personal financial data.</p><p><strong>6. Acceptable Use.</strong> No unlawful use, reverse-engineering, sharing or misuse of the Premium key, or interference with servers.</p><p><strong>7. Premium Access.</strong> Granted at the owner's discretion, non-transferable, revocable at any time without notice.</p><p><strong>8. Termination.</strong> The owner may suspend or end access at any time.</p><p><strong>9. Warranties.</strong> The Service is provided without warranties of any kind, express or implied.</p><p><strong>10. Liability.</strong> To the maximum extent permitted by law, the owner is not liable for indirect, incidental, special, consequential or punitive damages.</p><p><strong>11. Changes.</strong> Terms may change; continued use means acceptance.</p><p><strong>12. Governing Law.</strong> The laws of the owner's jurisdiction apply.</p><p style="margin-bottom:0;"><strong>Contact:</strong> mywestin1@gmail.com</p></div></details>
+      <details class="legal"><summary>🔒 Privacy Policy</summary><div class="small legal-body"><p><strong>1. Data Collected.</strong> Only the financial data you enter, plus your Google email if you sign in for Premium. No device IDs, location, browsing history or contacts.</p><p><strong>2. Storage.</strong> Data is stored on your device (IndexedDB, and Origin Private File System where supported). With cloud sync on, it is stored in your private Firestore namespace (<code>userData/{your-uid}</code>), readable only by you.</p><p><strong>3. API Keys.</strong> Keys you enter stay on your device and are excluded from backups. The shared Premium key is fetched from Firestore after sign-in and held in memory only.</p><p><strong>4. AI Providers.</strong> With AI mode on, your financial context is sent to the provider you choose (Groq, DeepSeek, OpenAI or Premium) and is governed by that provider's policy.</p><p><strong>5. Premium Whitelist.</strong> The owner keeps a list (<code>premiumUsers</code>) of approved emails with the date added.</p><p><strong>6. Cookies.</strong> Daphne uses no cookies; it uses localStorage and IndexedDB on your device.</p><p><strong>7. Third Parties.</strong> Firebase (auth, Firestore), Google Calendar (optional) and AI providers, each under their own policies.</p><p><strong>8. Retention.</strong> Local data stays until you reset it or uninstall. Cloud data stays until you delete it. Whitelist entries stay until the owner removes them.</p><p><strong>9. Your Rights.</strong> Export via "Download backup", delete via "Reset all data", or ask the owner to remove you from the whitelist.</p><p><strong>10. Children.</strong> Not intended for users under 18.</p><p><strong>11. Security.</strong> Firebase Auth and Firestore rules restrict access. No system is perfectly secure.</p><p><strong>12. Changes.</strong> Updates are reflected in the app version.</p><p style="margin-bottom:0;"><strong>Contact:</strong> mywestin1@gmail.com</p></div></details>
+      <details class="legal"><summary>⚠️ Financial Disclaimer</summary><div class="small legal-body"><p><strong>NOT FINANCIAL ADVICE.</strong> Daphne and its AI agent are not registered investment advisors, broker-dealers or financial planners under the Investment Advisers Act of 1940, the Securities Exchange Act of 1934 or state securities laws.</p><p><strong>No Fiduciary Relationship.</strong> Using Daphne creates no advisory or fiduciary relationship.</p><p><strong>Educational Only.</strong> Recommendations, projections, payoff timelines and AI insights are based on the data you enter and general principles, not your full financial picture.</p><p><strong>No Guarantee.</strong> Markets, rates and circumstances change. No outcome is guaranteed.</p><p><strong>Investment Risk.</strong> Mentions of 401k, IRA, HSA or investing are general information. All investments risk loss of principal.</p><p><strong>Debt &amp; Credit.</strong> Projections assume fixed rates and consistent payments; actual results vary. Daphne does not negotiate with creditors or repair credit.</p><p><strong>Tax.</strong> Tax mentions are general, not tax advice. Consult a licensed tax professional.</p><p><strong>AI Providers.</strong> Third-party models may be inaccurate, biased or outdated. Verify important decisions with a professional.</p><p style="margin-bottom:0;"><strong>Acknowledgment.</strong> You alone bear responsibility for your financial decisions.</p></div></details>
+      <details class="legal"><summary>🍪 Cookie &amp; Local Storage Policy</summary><div class="small legal-body"><p>Daphne does <strong>not</strong> use cookies, tracking pixels or analytics SDKs.</p><ul style="margin:6px 0 6px 18px;"><li><strong>IndexedDB</strong> — your financial dataset and auto-save file handle.</li><li><strong>localStorage</strong> — legacy fallback copy, alert flags and a device ID for sync.</li><li><strong>Origin Private File System</strong> — offline durable copy, where supported.</li><li><strong>Cache Storage</strong> — service worker app-shell cache.</li></ul><p style="margin-bottom:0;">None of these send data to the owner or third parties. Clear them via your browser or "Reset all data".</p></div></details>
+      <details class="legal"><summary>⚖️ Compliance &amp; Accessibility</summary><div class="small legal-body"><p><strong>GDPR.</strong> Your email is processed only when you sign in for Premium, on your consent. You may request access, correction, erasure, restriction or portability from the owner.</p><p><strong>CCPA.</strong> California residents may request disclosure or deletion. Daphne does not sell personal information.</p><p><strong>COPPA.</strong> Not directed to children under 13 (16 in the EU). Contact the owner to delete any child's data.</p><p><strong>Accessibility.</strong> Daphne aims for WCAG 2.1 AA. Report barriers to the owner.</p><p><strong>FCRA.</strong> Daphne is not a consumer reporting agency and is not affiliated with any credit bureau.</p><p><strong>GLBA.</strong> Daphne is not a "financial institution"; all data is user-entered.</p><p style="margin-bottom:0;"><strong>Contact:</strong> mywestin1@gmail.com</p></div></details>
+      <details class="legal"><summary>🛡️ Security &amp; Vulnerability Disclosure</summary><div class="small legal-body"><p><strong>API Keys.</strong> Your own keys stay on your device and are sent only to the provider you chose.</p><p><strong>Premium Key.</strong> Stored in Firestore <code>config/Premium</code>. Rules allow read only for the owner and approved Premium users, and write only for the owner. It is held in memory and discarded on sign-out.</p><p><strong>Authentication.</strong> Google Sign-In (OAuth 2.0). Daphne never sees your password.</p><p><strong>Cloud Sync.</strong> Encrypted in transit and at rest; only you can read your <code>userData/{uid}</code>.</p><p style="margin-bottom:0;"><strong>Reporting.</strong> Email mywestin1@gmail.com with subject "Daphne Security Report". Please allow reasonable time to fix before public disclosure.</p></div></details>
+      <details class="legal"><summary>📞 Contact &amp; Support</summary><div class="small legal-body"><p><strong>Owner &amp; Developer:</strong> mywestin1@gmail.com</p><p><strong>Scope:</strong> bugs, features, account issues, Premium requests, security and accessibility.</p><p><strong>Response:</strong> best effort, typically within 48 hours.</p><p style="margin-bottom:0;"><strong>Version:</strong> Daphne V.6.1 · <span id="legalBuildDate"></span></p></div></details>
+      <div class="tiny" style="margin-top:14px;text-align:center;">© <span id="legalYear"></span> Daphne. All rights reserved. Owner &amp; developer: mywestin1@gmail.com. Not affiliated with Ford Motor Company.</div>
     </div>
   </div>
 
@@ -1560,7 +1568,13 @@ function acctById(id){ return db.accounts.find(a=>a.id===id); }
 function bump(id,delta){ const a=acctById(id); if(a&&delta) a.balance=Math.round((num(a.balance)+delta)*100)/100; }
 function defaultAcct(cat){ const s=db.settings, c=cat&&(s.catAcct||{})[cat]; if(c&&acctById(c)) return c; if(s.defAcct&&acctById(s.defAcct)) return s.defAcct; return db.accounts[0]?db.accounts[0].id:''; }
 function acctName(id){ const a=acctById(id); return a?a.name:'—'; }
+function fillCatSelect(){
+  const el=$('expCategory'); if(!el) return; const cur=el.value;
+  el.innerHTML=Object.keys(CAT_COLORS).map(c=>'<option>'+escapeHtml(c)+'</option>').join('');
+  if(cur&&CAT_COLORS[cur]) el.value=cur;
+}
 function fillAcctSelects(){
+  fillCatSelect();
   [['expAcct',()=>defaultAcct($('expCategory')&&$('expCategory').value)],['incAcct',()=>defaultAcct()],['billAcct',()=>defaultAcct()],['defAcct',()=>defaultAcct()]].forEach(([id,def])=>{
     const el=$(id); if(!el) return; const cur=el.value;
     el.innerHTML='<option value="">None (don\'t track)</option>'+db.accounts.map(a=>`<option value="${a.id}">${escapeHtml(a.name)}</option>`).join('');
@@ -1688,7 +1702,7 @@ async function writeLinkedFile(text){
 async function linkFile(){
   if(!window.showSaveFilePicker) return toast('Not supported on this browser');
   try{
-    linkedHandle=await window.showSaveFilePicker({suggestedName:'ffm_data.json',types:[{description:'JSON',accept:{'application/json':['.json']}}]});
+    linkedHandle=await window.showSaveFilePicker({suggestedName:'daphne_data.json',types:[{description:'JSON',accept:{'application/json':['.json']}}]});
     await idbSet('handle',linkedHandle);
     await persistNow(); toast('Auto-save file linked'); renderSettings();
     const banner=$('filePermBanner'); if(banner) banner.style.display='none';
@@ -1708,7 +1722,7 @@ async function relinkFilePermission(){
 function exportable(){
   const c=JSON.parse(JSON.stringify(db));
   if(c.settings){ delete c.settings.keys; }
-  c.app='FFM'; c.version=5; c.exportedAt=new Date().toISOString();
+  c.app='Daphne'; c.version=5; c.exportedAt=new Date().toISOString();
   return c;
 }
 function setSaveState(ok){ const el=$('saveState'); if(el) el.textContent = ok ? 'Saved '+new Date().toLocaleTimeString([], {hour:'2-digit',minute:'2-digit'}) : 'Save failed'; }
@@ -1755,7 +1769,7 @@ async function shareBackup(){
   try{
     const file=new File([JSON.stringify(exportable(),null,2)],backupName(),{type:'application/json'});
     if(navigator.canShare && navigator.canShare({files:[file]})){
-      await navigator.share({files:[file],title:'FFM backup'});
+      await navigator.share({files:[file],title:'Daphne backup'});
       db.settings.lastBackup=Date.now(); scheduleSave(); renderSettings(); renderToday();
     } else exportData();
   }catch(e){ if(e&&e.name!=='AbortError') exportData(); }
@@ -1805,12 +1819,22 @@ function getTotals(){
 // V5 — CATEGORIES, MEALS, BILLS
 // ══════════════════════════════════════════════════════════════
 const CAT_KEYS = {
+  'Debt Payments':/credit card pay|loan pay|student loan|car payment|debt pay|minimum pay|\bpayoff\b/,
+  Insurance:/insurance|geico|state farm|progressive|allstate|premium/,
+  Subscriptions:/subscription|netflix|spotify|hulu|disney\+?|youtube premium|icloud|prime|patreon|membership|streaming/,
+  Pets:/\bpet\b|\bvet\b|dog food|cat food|petco|petsmart|kennel|groomer/,
+  'Kids/Family':/daycare|childcare|babysit|diaper|school|tuition|kids?\b|toys?\b|allowance/,
+  Travel:/flight|airline|hotel|airbnb|vacation|cruise|resort|rental car|luggage/,
+  'Gifts/Donations':/\bgift|donat|charity|tithe|offering|church|birthday present/,
+  'Personal Care':/haircut|barber|salon|nails|spa\b|massage|skincare|cosmetic|makeup|beauty|laundry|dry clean/,
+  Shopping:/amazon|target|clothes|clothing|shoes|mall|best buy|ebay|online order|apparel|electronics/,
+  Savings:/\bsavings\b|\bsave\b|emergency fund|invest|401k|\bira\b|brokerage|deposit to savings/,
   Food:/lunch|dinner|breakfast|brunch|coffee|grocer|restaurant|pizza|burger|taco|food|snack|chipotle|mcdonald|starbucks|deli|sandwich|takeout|doordash|uber eats|kroger|walmart grocery/,
   Transport:/\bgas\b|fuel|uber|lyft|\bbus\b|train|parking|toll|transit|car wash/,
   Utilities:/electric|water|internet|wifi|phone|power|utilit|trash|cable/,
-  Entertainment:/movie|netflix|spotify|game|concert|\bbar\b|drinks|hulu|subscription|streaming/,
+  Entertainment:/movie|game|concert|\bbar\b|drinks/,
   Health:/pharmacy|doctor|dentist|medicine|prescription|gym|clinic|vitamin/,
-  Housing:/\brent\b|mortgage|\bhoa\b|furniture|repair|insurance/
+  Housing:/\brent\b|mortgage|\bhoa\b|furniture|repair/
 };
 function guessCat(s){ s=String(s||'').toLowerCase(); for(const [c,re] of Object.entries(CAT_KEYS)) if(re.test(s)) return c; return 'Other'; }
 function normCat(c,desc){
@@ -2199,11 +2223,18 @@ async function acquireWakeLock(){
   try{ if('wakeLock' in navigator) return await navigator.wakeLock.request('screen'); }catch(e){}
   return null;
 }
+function cleanKey(k){ return String(k||'').trim().replace(/^bearer\s+/i,'').replace(/^["']|["']$/g,'').replace(/\s+/g,''); }
+function apiErrorText(name,status,body){
+  if(status===401||status===403) return name+' rejected the key ('+status+'). Re-paste it with no spaces.';
+  if(status===404||(status===400&&/model/i.test(body))) return name+' does not accept that model ('+status+'). Clear the Model box or enter a valid model.';
+  if(status===429) return name+' rate limit reached. Wait a minute and retry.';
+  return 'API error '+status+(body?': '+body:'');
+}
 async function callAI(prompt, systemPrompt, maxTokens = 800, jsonMode = false, history = []) {
   const s=db.settings;
   const p=PROVIDERS[s.provider]||PROVIDERS.groq;
   const isPrem=s.provider==='premium';
-  const key=isPrem?memberKey:(s.keys||{})[s.provider];
+  const key=isPrem?memberKey:cleanKey((s.keys||{})[s.provider]);
   if(isPrem && /PLACEHOLDER/.test(p.url+p.model)) throw new Error('Premium model is not set up yet.');
   if(!key) throw new Error(isPrem?'Premium needs Google sign-in with an approved account — see Settings.':'API key required — add it in Settings.');
   const model=(s.models&&s.models[s.provider])||p.model;
@@ -2219,7 +2250,7 @@ async function callAI(prompt, systemPrompt, maxTokens = 800, jsonMode = false, h
   const wakeLock=await acquireWakeLock();
   try{
     const res=await fetch(p.url,{method:'POST',headers:{'Content-Type':'application/json','Authorization':'Bearer '+key},body:JSON.stringify(body),signal:_activeAIController.signal});
-    if(!res.ok){ let t=''; try{ t=(await res.text()).slice(0,200); }catch(e){} throw new Error('API error '+res.status+(t?': '+t:'')); }
+    if(!res.ok){ let t=''; try{ t=(await res.text()).slice(0,200); }catch(e){} throw new Error(apiErrorText(p.name,res.status,t)); }
     const data=await res.json();
     const content=data&&data.choices&&data.choices[0]&&data.choices[0].message&&data.choices[0].message.content;
     if(content==null) throw new Error('AI returned an empty response. Try again or switch providers in Settings.');
@@ -2234,7 +2265,16 @@ async function callAI(prompt, systemPrompt, maxTokens = 800, jsonMode = false, h
   }
 }
 
-function buildContext(){
+function relevantMemory(q){
+  const words=new Set(String(q||'').toLowerCase().match(/[a-z]{4,}/g)||[]);
+  const scored=db.memory.map((m,i)=>({t:m.text,i,sc:(String(m.text).toLowerCase().match(/[a-z]{4,}/g)||[]).filter(w=>words.has(w)).length}));
+  const hit=scored.filter(x=>x.sc>0).sort((a,b)=>b.sc-a.sc||b.i-a.i).slice(0,10);
+  const recent=scored.slice(-5);
+  const seen=new Set(), out=[];
+  [...hit,...recent].forEach(x=>{ if(!seen.has(x.i)){ seen.add(x.i); out.push(x.t); } });
+  return out;
+}
+function buildContext(q){
   const t=getTotals(), today=todayISO();
   const from30=addDaysISO(today,-30);
   const exp=db.expenses.filter(e=>e.date&&e.date>=from30).sort((a,b)=>b.date.localeCompare(a.date)).slice(0,80).map(e=>`${e.date} ${e.category} ${e.desc} ${num(e.amount)}`);
@@ -2253,12 +2293,12 @@ ${exp.join('\n')||'(none)'}
 MEALS LAST 30 DAYS:
 ${meals.join('\n')||'(none)'}
 LUNCH STATS (4 wks): ${l.n} lunches, avg ${l.avg.toFixed(2)}, about ${l.perMonth.toFixed(2)}/month
-NOTES ABOUT USER: ${db.memory.map(m=>m.text).join(' | ')||'(none)'}`;
+NOTES ABOUT USER: ${relevantMemory(q).join(' | ')||'(none)'}`;
 }
-const AI_SYSTEM = `You are the assistant inside Ford Finance Manager (FFM) V.6.1, a personal finance app. Be warm, brief and practical. Use the DATA below for every answer; never invent numbers.
+const AI_SYSTEM = `You are Daphne, the AI agent inside a personal financial tool. Be warm, brief and practical. Use the DATA below for every answer; never invent numbers.
 Return ONLY a JSON object: {"reply":"markdown text","actions":[...]}
 "actions" saves things the user told you. Allowed action objects:
-{"type":"add_expense","desc":"","amount":0,"category":"Housing|Food|Transport|Utilities|Entertainment|Health|Other","date":"YYYY-MM-DD"}
+{"type":"add_expense","desc":"","amount":0,"category":"Housing|Food|Transport|Utilities|Entertainment|Health|Insurance|Debt Payments|Savings|Shopping|Personal Care|Subscriptions|Kids/Family|Pets|Travel|Gifts/Donations|Other","date":"YYYY-MM-DD"}
 {"type":"add_income","source":"","amount":0,"date":"YYYY-MM-DD","recurring":"none"}
 {"type":"add_meal","meal":"breakfast|lunch|dinner|snack","text":"","cost":0,"date":"YYYY-MM-DD"}   (omit cost if unknown)
 {"type":"set_meal_cost","cost":0}   (sets cost of the latest meal without one)
@@ -2273,7 +2313,9 @@ add_expense and add_income may include an optional "account" (account name) when
 
 async function aiAgent(text){
   const hist=db.chat.slice(-9,-1).map(m=>({role:m.role==='user'?'user':'assistant',content:String(m.text).slice(0,600)}));
-  const raw=await callAI(text, AI_SYSTEM+'\n\nDATA:\n'+buildContext(), 900, true, hist);
+  const voice=(db.settings.chatStyle||'').trim();
+  const sys=AI_SYSTEM+(voice?'\n\nVOICE (how the user wants you to talk; applies to the reply text only; never change the JSON format, the actions or the numbers): '+voice.replace(/[\r\n]+/g,' '):'')+'\n\nDATA:\n'+buildContext(text);
+  const raw=await callAI(text, sys, 900, true, hist);
   const parsed=extractJSON(raw);
   const pick=o=>{
     for(const k of ['reply','response','answer','message','text','content','summary']){
@@ -2312,7 +2354,7 @@ function fmtTime(ts){
 const WELCOME_EMPTY = `
   <div class="chat-empty">
     <div class="empty-icon">💰</div>
-    <h3>Welcome to Ford Finance Manager</h3>
+    <h3>Welcome to Daphne</h3>
     <p>Tell me what you spend, eat, or owe — I'll track it for you. Try the examples below or just type a message.</p>
     <div class="empty-chips">
       <button class="chip" data-action="chip" data-text="Spent $12 on gas" data-send="1">Spent $12 on gas</button>
@@ -2883,8 +2925,8 @@ function renderAlerts(list){
 async function notifyAlert(a){
   if(!('Notification' in window)||Notification.permission!=='granted') return;
   const opts={body:a.text,tag:'ffm_'+a.id,icon:'icon-192.png',badge:'icon-192.png',data:{url:'./index.html?tab='+a.tab}};
-  try{ const reg=navigator.serviceWorker&&await navigator.serviceWorker.getRegistration(); if(reg){ await reg.showNotification('Ford Finance Manager — '+a.title,opts); return; } }catch(e){}
-  try{ new Notification('Ford Finance Manager — '+a.title,opts); }catch(e){}
+  try{ const reg=navigator.serviceWorker&&await navigator.serviceWorker.getRegistration(); if(reg){ await reg.showNotification('Daphne — '+a.title,opts); return; } }catch(e){}
+  try{ new Notification('Daphne — '+a.title,opts); }catch(e){}
 }
 function runAlerts(){
   let list=[]; try{ list=computeAlerts(); }catch(e){ return; }
@@ -2931,7 +2973,7 @@ function calItems(){
 function icsEsc(t){ return String(t).replace(/\\/g,'\\\\').replace(/;/g,'\\;').replace(/,/g,'\\,').replace(/\n/g,'\\n'); }
 function exportICS(){
   const items=calItems(); if(!items.length) return toast('Nothing to export yet');
-  const stamp=new Date().toISOString().replace(/[-:]/g,'').replace(/\.\d+/,''), L=['BEGIN:VCALENDAR','VERSION:2.0','PRODID:-//FFM//Finance//EN','CALSCALE:GREGORIAN'];
+  const stamp=new Date().toISOString().replace(/[-:]/g,'').replace(/\.\d+/,''), L=['BEGIN:VCALENDAR','VERSION:2.0','PRODID:-//Daphne//Finance//EN','CALSCALE:GREGORIAN'];
   items.forEach(it=>{ const rr=rrule(it.rec);
     L.push('BEGIN:VEVENT','UID:'+it.key+'@ffm','DTSTAMP:'+stamp,'DTSTART;VALUE=DATE:'+it.date.replace(/-/g,''),'DTEND;VALUE=DATE:'+addDaysISO(it.date,1).replace(/-/g,''),'SUMMARY:'+icsEsc(it.title));
     if(rr) L.push('RRULE:'+rr);
@@ -3132,6 +3174,8 @@ function renderSettings(){
   if($('cloudSync')) $('cloudSync').checked=s.cloudSync!==false;
   renderAlertSettings();
   $('autoLog').checked=s.autoLog!==false;
+  if($('aiStyle')) $('aiStyle').value=s.chatStyle||'';
+  renderMemory();
   const ts=document.getElementById('themeSelect');
   if(ts) ts.value=s.theme||'dark';
   const last=s.lastBackup?new Date(s.lastBackup).toLocaleDateString():'never';
@@ -3144,13 +3188,33 @@ function onProviderChange(){
   $('aiKey').value=(db.settings.keys||{})[p]||''; $('aiModel').value=(db.settings.models||{})[p]||''; $('aiModel').placeholder=PROVIDERS[p].model;
   $('manualKeyBox').style.display=p==='premium'?'none':'';
 }
+function renderMemory(){
+  const el=$('memList'); if(!el) return;
+  el.innerHTML=db.memory.length?db.memory.map(m=>`<div class="list-row"><span>${escapeHtml(m.text)}</span><span class="btns"><button class="btn secondary" data-action="delMemory" data-id="${m.id}">Delete</button></span></div>`).join(''):'<div class="small">Nothing saved yet.</div>';
+}
+function delMemory(id){ db.memory=db.memory.filter(m=>m.id!==id); scheduleSave(); renderMemory(); }
+function clearMemory(){ if(!db.memory.length) return; if(!confirm('Delete everything Daphne remembers about you?')) return; db.memory=[]; scheduleSave(); renderMemory(); }
+async function testKey(){
+  const out=$('keyTestResult'); const p=$('aiProvider').value;
+  if(p==='premium'){ out.textContent='Premium uses your Google sign-in, no key to test.'; return; }
+  const k=cleanKey($('aiKey').value); if(!k){ out.textContent='Paste a key first.'; return; }
+  const prov=PROVIDERS[p]; const model=$('aiModel').value.trim()||prov.model;
+  out.textContent='Testing…';
+  try{
+    const r=await fetch(prov.url,{method:'POST',headers:{'Content-Type':'application/json','Authorization':'Bearer '+k},body:JSON.stringify({model,messages:[{role:'user',content:'Say OK'}],max_tokens:5})});
+    if(r.ok){ out.textContent='✓ '+prov.name+' key works ('+model+').'; return; }
+    let t=''; try{ t=(await r.text()).slice(0,200); }catch(e){}
+    out.textContent='✗ '+apiErrorText(prov.name,r.status,t);
+  }catch(e){ out.textContent='✗ Could not reach '+prov.name+'. Check your connection or ad-blocker.'; }
+}
 function saveSettings(){
   const s=db.settings, p=$('aiProvider').value;
   s.mode=$('aiMode').value; s.provider=p;
   s.keys=s.keys||{}; s.models=s.models||{};
-  if(p!=='premium'){ const k=$('aiKey').value.trim(); if(k) s.keys[p]=k; else delete s.keys[p]; }
+  if(p!=='premium'){ const k=cleanKey($('aiKey').value); if(k) s.keys[p]=k; else delete s.keys[p]; }
   const m=$('aiModel').value.trim(); if(m) s.models[p]=m; else delete s.models[p];
   s.autoLog=$('autoLog').checked; s.defAcct=$('defAcct').value;
+  s.chatStyle=($('aiStyle')?$('aiStyle').value:'').trim().slice(0,300);
   // Theme — read from select if present
   const ts=document.getElementById('themeSelect');
   if(ts){ s.theme=ts.value; applyTheme(ts.value); }
@@ -3246,6 +3310,9 @@ document.addEventListener('DOMContentLoaded', async () => {
       case 'setMealCost': setMealCost(id); break;
       case 'deleteMeal': deleteMeal(id); break;
       case 'saveSettings': saveSettings(); break;
+      case 'testKey': testKey(); break;
+      case 'delMemory': delMemory(id); break;
+      case 'clearMemory': clearMemory(); break;
       case 'memberSignIn': memberSignIn(); break;
       case 'addPremiumUser': addPremiumUser(); break;
       case 'removePremiumUser': removePremiumUser(el.dataset.email); break;
@@ -3525,7 +3592,7 @@ function handleAirCommand(action){
 function buildSummaryText(){
   const t = getTotals();
   const lines = [];
-  lines.push('Ford Finance Manager (FFM) — Summary');
+  lines.push('Daphne — Summary');
   lines.push('Generated: ' + new Date().toLocaleString());
   lines.push('');
   lines.push('MONTHLY OVERVIEW');
@@ -3567,9 +3634,9 @@ async function shareToSamsungNotes(){
     try{
       const file = new File([text], 'ffm_summary.txt', {type:'text/plain'});
       if(navigator.canShare && navigator.canShare({files:[file]})){
-        await navigator.share({ files:[file], title:'Ford Finance Manager Summary', text });
+        await navigator.share({ files:[file], title:'Daphne Summary', text });
       } else {
-        await navigator.share({ title:'Ford Finance Manager Summary', text });
+        await navigator.share({ title:'Daphne Summary', text });
       }
       toast('Shared — pick Samsung Notes from the share sheet');
       return;
@@ -3670,7 +3737,7 @@ function initBillReminderNotifications(){
           });
         }catch(e){}
       } else if(Notification.permission === 'granted'){
-        new Notification('Ford Finance Manager — Bill Due Soon', {
+        new Notification('Daphne — Bill Due Soon', {
           body: b.name + ' — ' + money(num(b.amount)) + ' · due ' + formatDate(b.due),
           icon: 'icon-192.png',
           badge: 'icon-192.png',
@@ -3805,7 +3872,7 @@ function editExpense(id){ const d=db.expenses.find(x=>x.id===id); editExpenseId=
 function cancelExpenseEdit(){ editExpenseId=null; document.getElementById('expSubmitBtn').textContent='Add Expense'; document.getElementById('expCancelBtn').style.display='none'; }
 function deleteExpense(id){ if(!confirm('Delete?')) return; const d=db.expenses.find(x=>x.id===id); if(d) bump(d.acct,num(d.amount)); db.expenses=db.expenses.filter(x=>x.id!==id); debouncedSaveDB(); renderAll(); }
 
-const CAT_COLORS = { Housing:'#60a5fa', Food:'#f472b6', Transport:'#fbbf24', Utilities:'#a78bfa', Entertainment:'#f97316', Health:'#4ade80', Other:'#8b98a5' };
+const CAT_COLORS = { Housing:'#60a5fa', Food:'#f472b6', Transport:'#fbbf24', Utilities:'#a78bfa', Entertainment:'#f97316', Health:'#4ade80', Insurance:'#38bdf8', 'Debt Payments':'#ef4444', Savings:'#22d3ee', Shopping:'#e879f9', 'Personal Care':'#fb7185', Subscriptions:'#818cf8', 'Kids/Family':'#facc15', Pets:'#a3e635', Travel:'#2dd4bf', 'Gifts/Donations':'#f59e0b', Other:'#8b98a5' };
 function renderExpenses(){
   const tb=document.getElementById('expenseTable');
   tb.innerHTML = db.expenses.length ? sortedExpenses().map(d => `<tr>
