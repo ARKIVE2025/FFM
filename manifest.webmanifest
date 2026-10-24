@@ -1,7 +1,7 @@
 {
-  "name": "Ford Finance Manager (FFM)",
-  "short_name": "Ford Finance",
-  "description": "Luxury personal finance assistant with AI agent, debt payoff planner, budget insights, and Samsung Notes export.",
+  "name": "FFM Financial Tool",
+  "short_name": "FFM",
+  "description": "FFM financial tool powered by Daphne, your AI agent, debt payoff planner, budget insights, and Samsung Notes export.",
   "version": "6.1.0",
   "start_url": "./?tab=assistant",
   "scope": "./",
@@ -18,7 +18,7 @@
     { "src": "icon-maskable-512.png", "sizes": "512x512", "type": "image/png", "purpose": "maskable" }
   ],
   "shortcuts": [
-    { "name": "Assistant", "url": "./?tab=assistant", "icons": [{"src":"icon-192.png","sizes":"192x192"}] },
+    { "name": "FFM Financial Tool", "url": "./?tab=assistant", "icons": [{"src":"icon-192.png","sizes":"192x192"}] },
     { "name": "Today", "url": "./?tab=today", "icons": [{"src":"icon-192.png","sizes":"192x192"}] },
     { "name": "Smart Investor Pro", "url": "./?tab=snowball", "icons": [{"src":"icon-192.png","sizes":"192x192"}] }
   ],
