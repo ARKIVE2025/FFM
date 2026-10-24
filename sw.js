@@ -1,5 +1,5 @@
 // ══════════════════════════════════════════════════════════════
-// Ford Finance Manager V.6.1 — Service Worker
+// FFM V.6.1 — Service Worker
 // Robust offline-first PWA with:
 //  - Network-first for HTML/JS/CSS (instant updates, graceful offline fallback)
 //  - Cache-first for icons/fonts (instant, never re-fetched)
@@ -9,7 +9,7 @@
 //  - skipWaiting + clients.claim for zero-downtime updates
 // ══════════════════════════════════════════════════════════════
 
-const VERSION = 'ffm-v6-1-luxury';
+const VERSION = 'ffm-v6-3';
 const SHELL = [
   './',
   './index.html',
@@ -58,7 +58,7 @@ async function handleNavigation(req) {
     return new Response(
       '<!doctype html><meta charset="utf-8"><title>Offline</title>' +
       '<body style="background:#0b0f14;color:#e6edf3;font-family:sans-serif;padding:40px;text-align:center">' +
-      '<h2>You\'re offline</h2><p>Ford Finance Manager needs a connection for this page. ' +
+      '<h2>You\'re offline</h2><p>FFM needs a connection for this page. ' +
       'Your saved data is intact — try again when you\'re back online.</p></body>',
       { status: 503, statusText: 'Offline', headers: { 'Content-Type': 'text/html; charset=utf-8' } }
     );
@@ -115,7 +115,7 @@ async function sendBillReminders() {
     const cache = await caches.open(VERSION);
     const clients = await self.clients.matchAll({ includeUncontrolled: true, type: 'window' });
     if (clients.length === 0) {
-      await self.registration.showNotification('Ford Finance Manager', {
+      await self.registration.showNotification('FFM', {
         body: 'Tap to check for upcoming bills.',
         icon: 'icon-192.png',
         badge: 'icon-192.png',
@@ -153,7 +153,7 @@ self.addEventListener('message', e => {
   const msg = e.data || {};
   if (msg.type === 'SKIP_WAITING') self.skipWaiting();
   if (msg.type === 'SHOW_BILL_NOTIFICATION' && msg.payload) {
-    self.registration.showNotification('Ford Finance Manager — Bill Due', {
+    self.registration.showNotification('FFM — Bill Due', {
       body: msg.payload.body,
       icon: 'icon-192.png',
       badge: 'icon-192.png',
@@ -168,4 +168,17 @@ self.addEventListener('message', e => {
       }).catch(()=>{});
     } catch (e) {}
   }
+});
+// ── Server push (Firebase Cloud Messaging data messages)
+self.addEventListener('push', e => {
+  let j = {};
+  try { j = e.data ? e.data.json() : {}; } catch (_) { try { j = { body: e.data.text() }; } catch (__) {} }
+  const d = j.data || j.notification || j;
+  e.waitUntil(self.registration.showNotification(d.title || 'FFM', {
+    body: d.body || '',
+    icon: 'icon-192.png',
+    badge: 'icon-192.png',
+    tag: d.tag || undefined,
+    data: { url: d.url || './index.html?tab=today&inbox=1' }
+  }));
 });
