@@ -1061,6 +1061,16 @@
     .voice-btn.recording, .voice-waveform .bar,
     .streaming-cursor, #modeBadge::before{animation:none;}
   }
+
+  /* Phone header fit */
+  html{overflow-x:hidden;}
+  header h1{min-width:0;}
+  @media (max-width:640px){
+    header{flex-wrap:wrap;row-gap:8px;}
+    header .brand-badge,header .brand-sub{display:none;}
+    .header-actions{flex:1 1 100%;flex-wrap:wrap;justify-content:flex-end;}
+    #menuBtn{padding:5px 10px;}
+  }
 </style>
 </head>
 <body>
@@ -4361,18 +4371,20 @@ function addInboxFromAlerts(list){
 function renderInbox(){
   const el=$('inboxList'); if(!el) return;
   const items=[...(db.inbox||[])].reverse();
-  el.innerHTML=items.length?items.map(m=>'<div class="card compact" style="margin-bottom:8px;'+(m.read?'opacity:.65;':'border-color:var(--accent);')+'"><div class="small">'+escapeHtml(m.text)+'</div><div class="tiny" style="margin:4px 0;">'+new Date(m.ts).toLocaleString()+'</div><button class="btn secondary" data-action="inboxGo" data-id="'+m.id+'" data-tab="'+escapeHtml(m.tab)+'">Open</button></div>').join(''):'<div class="small">No messages from Daphne yet.</div>';
+  el.innerHTML=items.length?items.map(m=>'<div class="card compact" style="margin-bottom:8px;'+(m.read?'opacity:.65;':'border-color:var(--accent);')+'"><div class="small">'+escapeHtml(m.text)+'</div><div class="tiny" style="margin:4px 0;">'+new Date(m.ts).toLocaleString()+'</div><button class="btn secondary" data-action="inboxGo" data-id="'+m.id+'" data-tab="'+escapeHtml(m.tab)+'">Open</button> <button class="btn danger" data-action="delInbox" data-id="'+m.id+'">Delete</button></div>').join(''):'<div class="small">No messages from Daphne yet.</div>';
 }
 function openInbox(){
   if(!$('inboxPanel')){
     const d=document.createElement('div'); d.id='inboxPanel';
     d.style.cssText='position:fixed;inset:0;z-index:9999;background:rgba(0,0,0,.55);display:flex;align-items:flex-start;justify-content:center;padding:calc(env(safe-area-inset-top,0px) + 56px) 12px 12px;';
-    d.innerHTML='<div class="card" style="width:100%;max-width:460px;max-height:80vh;overflow:auto;"><div class="row" style="align-items:center;margin-bottom:10px;"><h3 style="margin:0;">Daphne\'s messages</h3><span class="btns"><button class="btn secondary" data-action="inboxReadAll">Mark all read</button> <button class="btn secondary" data-action="closeInbox" aria-label="Close">✕</button></span></div><div id="inboxList"></div></div>';
+    d.innerHTML='<div class="card" style="width:100%;max-width:460px;max-height:80vh;overflow:auto;"><div class="row" style="align-items:center;margin-bottom:10px;"><h3 style="margin:0;">Daphne\'s messages</h3><span class="btns"><button class="btn secondary" data-action="inboxReadAll">Mark all read</button> <button class="btn danger" data-action="inboxClear">Clear all</button> <button class="btn secondary" data-action="closeInbox" aria-label="Close">✕</button></span></div><div id="inboxList"></div></div>';
     d.addEventListener('click',e=>{ if(e.target===d) closeInbox(); });
     document.body.appendChild(d);
   }
   renderInbox();
 }
+function delInbox(id){ db.inbox=(db.inbox||[]).filter(m=>m.id!==id); scheduleSave(); renderBell(); renderInbox(); }
+function inboxClear(){ if(!(db.inbox||[]).length) return; if(!confirm('Delete all of Daphne\'s messages?')) return; db.inbox=[]; scheduleSave(); renderBell(); renderInbox(); }
 function closeInbox(){ const d=$('inboxPanel'); if(d) d.remove(); }
 function inboxReadAll(){ (db.inbox||[]).forEach(m=>m.read=true); scheduleSave(); renderBell(); renderInbox(); }
 function inboxGo(id,tab){ const m=(db.inbox||[]).find(x=>x.id===id); if(m){ m.read=true; scheduleSave(); renderBell(); } closeInbox(); if(tab) switchTab(tab); }
@@ -4850,6 +4862,8 @@ document.addEventListener('DOMContentLoaded', async () => {
       case 'menu': toggleMenu(); break;
       case 'closeMenu': closeMenu(); break;
       case 'closeInbox': closeInbox(); break;
+      case 'delInbox': delInbox(id); break;
+      case 'inboxClear': inboxClear(); break;
       case 'inboxReadAll': inboxReadAll(); break;
       case 'inboxGo': inboxGo(id, el.dataset.tab); break;
       case 'dismissAlert': dismissAlert(el.dataset.id); break;
@@ -5675,11 +5689,13 @@ function calcSnowball(){
   const method = document.getElementById('payoffMethod').value;
   const extra = parseFloat(document.getElementById('extraPayment').value)||0;
   const t = getTotals();
-  const surplus = t.totInc - t.totExp - t.billsDue + extra;
+  const budget = t.totInc - t.totExp - t.billsDue + extra;
   const minTotal = db.debts.reduce((s,d)=>s+d.min,0);
+  const short = budget < minTotal;
+  const surplus = Math.max(budget, minTotal);   // if cash is short, still show the minimums-only plan
 
-  // Handle insufficient funds
-  if(surplus <= 0 || surplus < minTotal){
+  // Nothing to pay with
+  if(surplus <= 0){
     document.getElementById('snowballResult').style.display = 'block';
     document.getElementById('snowballResult').innerHTML = `
       <div class="milestone-banner">
@@ -5796,7 +5812,14 @@ function calcSnowball(){
   const resultCard = document.getElementById('snowballResult');
   resultCard.style.display = 'block';
 
-  let milestoneHTML = '';
+  let milestoneHTML = short ? `
+      <div class="milestone-banner">
+        <div class="emoji">⚠️</div>
+        <div class="text">
+          <h4>Cash flow is tight</h4>
+          <p>After expenses and bills you have <strong>${money(budget)}</strong> available, below the ${money(minTotal)} of minimum payments. This plan shows minimum payments only. Add income or lower spending to pay debts off faster.</p>
+        </div>
+      </div>` : '';
   if(firstDebtEvent){
     milestoneHTML += `
       <div class="milestone-banner">
@@ -5854,7 +5877,7 @@ function calcSnowball(){
       <div class="tile">
         <div class="tile-label">Total Monthly Payment</div>
         <div class="tile-val" style="color:var(--text);">${money(surplus)}</div>
-        <div class="tile-sub">${money(minTotal)} mins + ${money(extra)} extra + ${money(surplus-minTotal-extra)} leftover budget</div>
+        <div class="tile-sub">${money(minTotal)} mins + ${money(extra)} extra + ${money(Math.max(0,surplus-minTotal-extra))} leftover budget</div>
       </div>
       <div class="tile">
         <div class="tile-label">Starting Balance</div>
@@ -5974,7 +5997,7 @@ function renderPayoffTimeline(originalDebts, payoffEvents, totalMonths, method){
   if(method==='snowball') debts.sort((a,b)=>a.balance-b.balance); else debts.sort((a,b)=>b.apr-a.apr);
   const extra = parseFloat(document.getElementById('extraPayment').value)||0;
   const t = getTotals();
-  const surplus = t.totInc - t.totExp - t.billsDue + extra;
+  const surplus = Math.max(t.totInc - t.totExp - t.billsDue + extra, db.debts.reduce((s,d)=>s+d.min,0));
   const series = debts.map(d => ({name:d.name, color:colors[debts.indexOf(d) % colors.length], points:[d.balance]}));
   // Simulate
   let work = debts.map(d => ({...d}));
