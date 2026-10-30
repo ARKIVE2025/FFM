@@ -1586,6 +1586,12 @@
       </div>
       <div class="small">Data is saved on this device automatically. Download a backup now and then. It lands in your Downloads folder.</div>
     </div>
+    <div class="card">
+      <h3>Cloud copies</h3>
+      <div class="small" style="margin-bottom:8px;">FFM keeps up to 5 earlier copies of your cloud data. Restore one if something goes wrong. A new or empty device can never overwrite your cloud data.</div>
+      <div id="versionList" class="small" style="margin-bottom:8px;"></div>
+      <div class="toolbar"><button class="btn secondary" data-action="loadVersions">Show cloud copies</button></div>
+    </div>
 
     <!-- V6.1: OWNER ADMIN PANEL -->
     <div class="card" id="ownerPanel" style="display:none;border-color:var(--purple);">
@@ -4444,7 +4450,7 @@ async function enablePush(quiet){
   }catch(e){ if($('pushStatus')) $('pushStatus').textContent='Push failed: '+((e&&(e.code||e.message))||'unknown error'); if(!quiet) toast('Push setup failed'); }
 }
 function alertsInit(){
-  setTimeout(daphneBrief,4000); setTimeout(()=>{ if(db.settings.pushOn) enablePush(true); },7000);
+  setTimeout(daphneBrief,4000); setTimeout(backupReminder,9000); setInterval(backupReminder,21600000); setTimeout(()=>{ if(db.settings.pushOn) enablePush(true); },7000);
   setTimeout(runAlerts,2500); setInterval(runAlerts,60000);
   document.addEventListener('visibilitychange',()=>{ if(!document.hidden) runAlerts(); else sendPendingAlerts(); });
   ['alertsOn','inactOn'].forEach(id=>{ const el=$(id); if(el) el.addEventListener('change',()=>{ db.settings[id]=el.checked; scheduleSave(); runAlerts(); }); });
@@ -4534,23 +4540,47 @@ function cloudSet(m){ cloudMsg=m; const el=$('cloudStatus'); if(el&&memberUser) 
 function cloudRef(fb){ return fb.firestore().collection('userData').doc(memberUser.uid); }
 function cloudQueue(){ if(!cloudOn()) return; clearTimeout(cloudTimer); cloudTimer=setTimeout(()=>cloudPush(),2500); }
 function cloudStop(){ if(cloudUnsub){ try{ cloudUnsub(); }catch(e){} cloudUnsub=null; } clearTimeout(cloudTimer); }
-function hasLocalData(){ return ['debts','income','expenses','goals','bills','accounts'].some(k=>db[k]&&db[k].length); }
-async function cloudPush(){
+const CORE_LISTS=['debts','income','expenses','goals','bills','accounts','meals','notes'];
+function dataCount(o){ return CORE_LISTS.reduce((s,k)=>s+((o&&Array.isArray(o[k]))?o[k].length:0),0); }
+function cloudCount(r){ try{ return dataCount(JSON.parse(r.data)); }catch(e){ return 0; } }
+function hasLocalData(){ return dataCount(db)>0; }
+function cloudErr(e,fallback){ return e&&e.code==='permission-denied'?'Cloud rules block sync. Add the userData rule in Firebase.':fallback; }
+async function cloudPush(force){
   if(!cloudOn()||cloudBusy) return;
   const c=exportable(); delete c.chat; const payload=JSON.stringify(c);
   if(payload.length>900000){ cloudSet('Data too large to sync.'); return; }
   cloudBusy=true;
   try{
-    const fb=await fbInit();
-    await cloudRef(fb).set({data:payload,updatedAt:db.modifiedAt||Date.now(),device:DEVICE_ID});
+    const fb=await fbInit(), ref=cloudRef(fb), snap=await ref.get();
+    const prev=snap.exists?snap.data():null, prevN=prev?cloudCount(prev):0, localN=dataCount(c);
+    if(!prev && localN===0){ cloudBusy=false; return; }               // nothing to upload yet
+    if(!force && prevN>0){
+      if(localN===0){ cloudBusy=false; cloudSet('Sync protected: this device is empty, so it was updated from your cloud data.'); applyRemote(prev); return; }
+      if(localN<prevN*0.5 && prevN-localN>=5){
+        cloudBusy=false;
+        if(confirm('This device has much less data ('+localN+' items) than your cloud copy ('+prevN+' items).\n\nOK = keep the cloud copy and update this device (safe)\nCancel = overwrite the cloud with this device (the cloud copy is saved first)')){ applyRemote(prev); return; }
+        cloudBusy=true;
+      }
+    }
+    let vc=(prev&&prev.vc)||0, snapAt=(prev&&prev.snapAt)||0;
+    const shrink=prevN>0&&localN<prevN*0.8, stale=Date.now()-snapAt>24*3600*1000;
+    if(prev&&prevN>0&&(force||shrink||stale)){
+      try{
+        await ref.collection('versions').doc(String(vc%5)).set({data:prev.data,savedAt:Date.now(),updatedAt:prev.updatedAt||0,count:prevN});
+        vc++; snapAt=Date.now();
+      }catch(e){ if(e&&e.code==='permission-denied') cloudSet('Cloud copies are off. Add the cloud-copies rule in Firebase.'); }
+    }
+    await ref.set({data:payload,updatedAt:db.modifiedAt||Date.now(),device:DEVICE_ID,vc,snapAt});
     if(!db.settings.cloudLinked){ db.settings.cloudLinked=true; persistNow({quiet:true}); }
     cloudSet('Synced '+new Date().toLocaleTimeString([],{hour:'2-digit',minute:'2-digit'}));
-  }catch(e){ cloudSet(e&&e.code==='permission-denied'?'Cloud rules block sync. Add the userData rule in Firebase.':'Sync failed. Will retry on next change.'); }
+  }catch(e){ cloudSet(cloudErr(e,'Sync failed. Will retry on next change.')); }
   cloudBusy=false;
 }
-function applyRemote(r){
+function applyRemote(r,force){
   try{
     const nd=normalizeDB(JSON.parse(r.data)), loc=db.settings||{};
+    if(!force && dataCount(nd)===0 && hasLocalData()){ cloudPush(); return; }   // never replace real data with an empty copy
+    if(hasLocalData()){ try{ idbSet('prev_local',JSON.stringify(exportable())).catch(()=>{}); }catch(e){} }
     ['keys','models','provider','mode','autoLog','lastBackup','cloudSync','cloudLinked'].forEach(k=>{ if(loc[k]!==undefined) nd.settings[k]=loc[k]; });
     nd.chat=db.chat; nd.modifiedAt=r.updatedAt; db=nd;
     persistNow({quiet:true}); renderAll(); renderChat(); renderSettings();
@@ -4563,17 +4593,50 @@ async function cloudStart(){
   try{
     const fb=await fbInit(), ref=cloudRef(fb), snap=await ref.get(), loc=db.modifiedAt||0;
     if(snap.exists){
-      const r=snap.data();
-      if(!db.settings.cloudLinked && hasLocalData() && r.updatedAt!==loc){
-        if(confirm('Cloud data found (saved '+new Date(r.updatedAt).toLocaleString()+').\n\nOK = use the cloud copy on this device\nCancel = replace the cloud copy with this device')) applyRemote(r); else await cloudPush();
+      const r=snap.data(), rN=cloudCount(r), lN=dataCount(db);
+      if(rN>0 && lN===0) applyRemote(r);                                   // empty or brand-new device: always restore from cloud
+      else if(rN===0 && lN>0) await cloudPush();                           // never let an empty cloud copy replace real data
+      else if(!db.settings.cloudLinked && lN>0 && r.updatedAt!==loc){
+        if(confirm('Cloud data found (saved '+new Date(r.updatedAt).toLocaleString()+').\n\nOK = use the cloud copy on this device\nCancel = replace the cloud copy with this device (the cloud copy is saved first)')) applyRemote(r); else await cloudPush(true);
       } else if(r.updatedAt>loc) applyRemote(r);
       else if(r.updatedAt<loc) await cloudPush();
       else cloudSet('Synced');
     } else await cloudPush();
-    if(!db.settings.cloudLinked){ db.settings.cloudLinked=true; persistNow({quiet:true}); }
+    if(!db.settings.cloudLinked && hasLocalData()){ db.settings.cloudLinked=true; persistNow({quiet:true}); }
     cloudUnsub=ref.onSnapshot(sn=>{ if(!sn.exists||sn.metadata.hasPendingWrites) return; const r=sn.data(); if(r.device!==DEVICE_ID && r.updatedAt>(db.modifiedAt||0)) applyRemote(r); },()=>{});
-  }catch(e){ cloudSet(e&&e.code==='permission-denied'?'Cloud rules block sync. Add the userData rule in Firebase.':'Could not reach cloud. Check connection.'); }
+  }catch(e){ cloudSet(cloudErr(e,'Could not reach cloud. Check connection.')); }
 }
+async function loadVersions(){
+  const el=$('versionList'); if(!el) return;
+  if(!memberUser){ el.textContent='Sign in with Google first.'; return; }
+  el.textContent='Loading…';
+  try{
+    const fb=await fbInit(), snap=await cloudRef(fb).collection('versions').get();
+    const rows=snap.docs.map(d=>Object.assign({id:d.id},d.data())).sort((a,b)=>(b.savedAt||0)-(a.savedAt||0));
+    el.innerHTML=rows.length?rows.map(v=>'<div class="list-row"><span>'+escapeHtml(new Date(v.savedAt||0).toLocaleString())+'<div class="tiny">'+(v.count||0)+' items</div></span><span class="btns"><button class="btn secondary" data-action="restoreVersion" data-id="'+escapeHtml(v.id)+'">Restore</button></span></div>').join(''):'No earlier copies yet. They are saved automatically as you use the app.';
+  }catch(e){ el.textContent=e&&e.code==='permission-denied'?'Add the cloud-copies rule in Firebase (see instructions).':'Could not load copies.'; }
+}
+async function restoreVersion(id){
+  if(!confirm('Restore this copy? Your current cloud data is saved as a copy first.')) return;
+  try{
+    const fb=await fbInit(), d=await cloudRef(fb).collection('versions').doc(id).get();
+    if(!d.exists) return toast('Copy not found');
+    applyRemote({data:d.data().data,updatedAt:Date.now()},true);
+    db.modifiedAt=Date.now(); persistNow({quiet:true});
+    setTimeout(()=>cloudPush(true),500); setTimeout(loadVersions,2500);
+    toast('Restored');
+  }catch(e){ toast('Restore failed'); }
+}
+function backupReminder(){
+  const has=db.expenses.length||db.debts.length||db.bills.length||db.income.length||db.accounts.length;
+  if(!has) return;
+  const W=7*864e5, now=Date.now(), s=db.settings;
+  if(now-(s.lastBackup||0)<W || now-(s.lastBackupRemind||0)<W) return;
+  s.lastBackupRemind=now; scheduleSave();
+  addInboxItem('Weekly backup time. Go to Settings and tap Download backup so your data is safe.','settings');
+  toast('Weekly backup reminder: Settings, then Download backup');
+}
+
 function memberInit(){
   if(!fbConfigured()){ memberState='unconfigured'; renderMember(); return; }
   fbInit().then(fb=>{
@@ -4864,6 +4927,8 @@ document.addEventListener('DOMContentLoaded', async () => {
       case 'closeInbox': closeInbox(); break;
       case 'delInbox': delInbox(id); break;
       case 'inboxClear': inboxClear(); break;
+      case 'loadVersions': loadVersions(); break;
+      case 'restoreVersion': restoreVersion(id); break;
       case 'inboxReadAll': inboxReadAll(); break;
       case 'inboxGo': inboxGo(id, el.dataset.tab); break;
       case 'dismissAlert': dismissAlert(el.dataset.id); break;
