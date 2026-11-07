@@ -1244,6 +1244,10 @@
         </div>
       </div>
       <div class="row"><div><label>Pay from</label><select id="billAcct"></select></div></div>
+      <div class="row">
+        <div><label>Payment category</label><select id="billCategory"></select></div>
+        <div><label>Linked debt</label><select id="billDebt"></select></div>
+      </div>
       <button class="btn" data-action="submitBill">Add Bill</button>
     </div>
     <div class="card">
@@ -1861,6 +1865,8 @@ function fillAcctSelects(){
     el.innerHTML='<option value="">None (don\'t track)</option>'+db.accounts.map(a=>`<option value="${a.id}">${escapeHtml(a.name)}</option>`).join('');
     el.value=(cur&&acctById(cur))?cur:def();
   });
+  const bc=$('billCategory'); if(bc){ const cur=bc.value; const cats=[...Object.keys(CAT_COLORS),...new Set(db.expenses.map(e=>e.category).filter(c=>c&&!CAT_COLORS[c]))]; bc.innerHTML='<option value="">Auto (guess from name)</option>'+cats.map(c=>'<option>'+escapeHtml(c)+'</option>').join(''); bc.value=cats.includes(cur)?cur:''; }
+  const bd=$('billDebt'); if(bd){ const cur=bd.value; bd.innerHTML='<option value="">None</option>'+db.debts.map(d=>`<option value="${d.id}">${escapeHtml(d.name)} (${money(num(d.balance))})</option>`).join(''); bd.value=db.debts.some(d=>d.id===cur)?cur:''; }
 }
 
 // "Month" filters so daily logs don't pile into the monthly totals
@@ -2262,7 +2268,8 @@ function applyAction(a,undo){
     case 'pay_bill':{
       const b=findByName(db.bills,'name',a.name); if(!b) return {err:`No bill named "${a.name}"`};
       const amt=a.amount!=null&&a.amount!==''?num(a.amount):num(b.amount);
-      addExp({id:uid(),desc:b.name+' (bill)',amount:amt,category:normCat(null,b.name),date:todayISO()},b.acct!==undefined&&b.acct!==''?b.acct:(b.acct===''?'':defaultAcct()));
+      addExp({id:uid(),desc:b.name+' (bill)',amount:amt,category:b.category||normCat(null,b.name),date:todayISO()},b.acct!==undefined&&b.acct!==''?b.acct:(b.acct===''?'':defaultAcct()));
+      if(b.debtId){ const d=db.debts.find(x=>x.id===b.debtId); if(d) edit('debts',d,{balance:Math.max(0,Math.round((num(d.balance)-amt)*100)/100)}); }
       if(b.recurring==='none'){
         undo.push({coll:'bills',id:b.id,prev:JSON.parse(JSON.stringify(b))});
         db.bills=db.bills.filter(x=>x.id!==b.id);
@@ -4168,9 +4175,12 @@ function payBill(id){
 function submitBill(){
   const name=$('billName').value.trim(), amount=parseFloat($('billAmount').value)||0, due=$('billDue').value, recurring=$('billRecurring').value;
   if(!name||amount<=0||!due) return alert('Enter a name, amount and due date');
-  db.bills.push({id:uid(),name,amount,due,day:parseDate(due).getDate(),recurring,acct:$('billAcct').value});
+  const nb={id:uid(),name,amount,due,day:parseDate(due).getDate(),recurring,acct:$('billAcct').value};
+  const cat=$('billCategory').value; if(cat) nb.category=cat;
+  const debtId=$('billDebt').value; if(debtId) nb.debtId=debtId;
+  db.bills.push(nb);
   scheduleSave(); renderBills(); renderToday(); renderCalendar();
-  $('billName').value=''; $('billAmount').value=''; $('billDue').value='';
+  $('billName').value=''; $('billAmount').value=''; $('billDue').value=''; $('billCategory').value=''; $('billDebt').value='';
 }
 function deleteBill(id){ if(!confirm('Delete this bill?')) return; db.bills=db.bills.filter(b=>b.id!==id); scheduleSave(); renderBills(); renderToday(); renderCalendar(); }
 function renderBills(){
@@ -4178,7 +4188,7 @@ function renderBills(){
   const list=[...db.bills].sort((a,b)=>String(a.due).localeCompare(String(b.due)));
   tb.innerHTML=list.length?list.map(b=>{
     const n=daysBetween(todayISO(),b.due);
-    return `<tr><td>${escapeHtml(b.name)}<div class="tiny">${b.recurring==='none'?'one time':b.recurring}${b.acct?' · '+escapeHtml(acctName(b.acct)):''}</div></td><td class="num">${money(num(b.amount))}</td><td><span class="badge ${n<0?'bad':n<=7?'warn':''}">${dueLabel(b.due)}</span><div class="tiny">${formatDate(b.due)}</div></td><td><button class="btn" data-action="payBill" data-id="${b.id}">Paid</button> <button class="btn danger" aria-label="Delete bill" data-action="deleteBill" data-id="${b.id}">X</button></td></tr>`;
+    return `<tr><td>${escapeHtml(b.name)}<div class="tiny">${b.recurring==='none'?'one time':b.recurring}${b.acct?' · '+escapeHtml(acctName(b.acct)):''}${b.category?' · '+escapeHtml(b.category):''}${b.debtId?' · pays '+escapeHtml((db.debts.find(d=>d.id===b.debtId)||{name:'linked debt'}).name):''}</div></td><td class="num">${money(num(b.amount))}</td><td><span class="badge ${n<0?'bad':n<=7?'warn':''}">${dueLabel(b.due)}</span><div class="tiny">${formatDate(b.due)}</div></td><td><button class="btn" data-action="payBill" data-id="${b.id}">Paid</button> <button class="btn danger" aria-label="Delete bill" data-action="deleteBill" data-id="${b.id}">X</button></td></tr>`;
   }).join(''):'<tr><td colspan="4" class="small">No bills yet</td></tr>';
 }
 
