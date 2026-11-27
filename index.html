@@ -1244,7 +1244,8 @@
         </div>
       </div>
       <div class="row"><div><label>Pay from</label><select id="billAcct"></select></div></div>
-      <button class="btn" data-action="submitBill">Add Bill</button>
+      <button class="btn" id="billSubmitBtn" data-action="submitBill">Add Bill</button>
+      <button class="btn secondary" id="billCancelBtn" style="display:none" data-action="cancelBillEdit">Cancel</button>
     </div>
     <div class="card">
       <table>
@@ -4165,20 +4166,36 @@ function payBill(id){
   const b=db.bills.find(x=>x.id===id); if(!b) return;
   const r=applyActions([{type:'pay_bill',name:b.name}]); toast(r.sums[0]||r.errs[0]||'');
 }
+let editBillId=null;
 function submitBill(){
-  const name=$('billName').value.trim(), amount=parseFloat($('billAmount').value)||0, due=$('billDue').value, recurring=$('billRecurring').value;
-  if(!name||amount<=0||!due) return alert('Enter a name, amount and due date');
-  db.bills.push({id:uid(),name,amount,due,day:parseDate(due).getDate(),recurring,acct:$('billAcct').value});
+  const name=$('billName').value.trim(), due=$('billDue').value, recurring=$('billRecurring').value;
+  const amount=parseFloat($('billAmount').value);
+  if(!name) return alert('Enter a bill name');
+  if(!(amount>0)) return alert('Amount must be a positive number');
+  const d=parseDate(due), parts=/^(\d{4})-(\d{2})-(\d{2})$/.exec(due||'');
+  if(!due||!d||isNaN(d)||!parts||d.getFullYear()!==+parts[1]||d.getMonth()!==+parts[2]-1||d.getDate()!==+parts[3]) return alert('Pick a valid due date');
+  const day=d.getDate();
+  if(day<1||day>31) return alert('Due day must be between 1 and 31');
+  if(editBillId){
+    const b=db.bills.find(x=>x.id===editBillId);
+    if(!b){ cancelBillEdit(); return alert('That bill no longer exists'); }
+    Object.assign(b,{name,amount,due,day,recurring,acct:$('billAcct').value});
+    cancelBillEdit();
+  } else {
+    db.bills.push({id:uid(),name,amount,due,day,recurring,acct:$('billAcct').value});
+  }
   scheduleSave(); renderBills(); renderToday(); renderCalendar();
   $('billName').value=''; $('billAmount').value=''; $('billDue').value='';
 }
-function deleteBill(id){ if(!confirm('Delete this bill?')) return; db.bills=db.bills.filter(b=>b.id!==id); scheduleSave(); renderBills(); renderToday(); renderCalendar(); }
+function editBill(id){ const b=db.bills.find(x=>x.id===id); if(!b) return; editBillId=id; $('billName').value=b.name; $('billAmount').value=b.amount; $('billDue').value=b.due||''; $('billRecurring').value=b.recurring||'monthly'; $('billAcct').value=b.acct||''; $('billSubmitBtn').textContent='Update Bill'; $('billCancelBtn').style.display='inline-block'; }
+function cancelBillEdit(){ editBillId=null; $('billName').value=''; $('billAmount').value=''; $('billDue').value=''; $('billSubmitBtn').textContent='Add Bill'; $('billCancelBtn').style.display='none'; }
+function deleteBill(id){ if(!confirm('Delete this bill?')) return; if(id===editBillId) cancelBillEdit(); db.bills=db.bills.filter(b=>b.id!==id); scheduleSave(); renderBills(); renderToday(); renderCalendar(); }
 function renderBills(){
   const tb=$('billTable'); if(!tb) return;
   const list=[...db.bills].sort((a,b)=>String(a.due).localeCompare(String(b.due)));
   tb.innerHTML=list.length?list.map(b=>{
     const n=daysBetween(todayISO(),b.due);
-    return `<tr><td>${escapeHtml(b.name)}<div class="tiny">${b.recurring==='none'?'one time':b.recurring}${b.acct?' · '+escapeHtml(acctName(b.acct)):''}</div></td><td class="num">${money(num(b.amount))}</td><td><span class="badge ${n<0?'bad':n<=7?'warn':''}">${dueLabel(b.due)}</span><div class="tiny">${formatDate(b.due)}</div></td><td><button class="btn" data-action="payBill" data-id="${b.id}">Paid</button> <button class="btn danger" aria-label="Delete bill" data-action="deleteBill" data-id="${b.id}">X</button></td></tr>`;
+    return `<tr><td>${escapeHtml(b.name)}<div class="tiny">${b.recurring==='none'?'one time':b.recurring}${b.acct?' · '+escapeHtml(acctName(b.acct)):''}</div></td><td class="num">${money(num(b.amount))}</td><td><span class="badge ${n<0?'bad':n<=7?'warn':''}">${dueLabel(b.due)}</span><div class="tiny">${formatDate(b.due)}</div></td><td><button class="btn secondary" data-action="editBill" data-id="${b.id}">Edit</button> <button class="btn" data-action="payBill" data-id="${b.id}">Paid</button> <button class="btn danger" aria-label="Delete bill" data-action="deleteBill" data-id="${b.id}">X</button></td></tr>`;
   }).join(''):'<tr><td colspan="4" class="small">No bills yet</td></tr>';
 }
 
@@ -4903,6 +4920,8 @@ document.addEventListener('DOMContentLoaded', async () => {
       case 'applyPending': applyPending(id); break;
       case 'dismissPending': dismissPending(id); break;
       case 'submitBill': submitBill(); break;
+      case 'cancelBillEdit': cancelBillEdit(); break;
+      case 'editBill': editBill(id); break;
       case 'payBill': payBill(id); break;
       case 'deleteBill': deleteBill(id); break;
       case 'addAccount': addAccount(); break;
